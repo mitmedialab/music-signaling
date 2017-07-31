@@ -1,0 +1,286 @@
+#####################################
+# Music Signaling Pipeline Prototype
+#	Pre-Processing: read ALL tracks 
+#	and compute dictionary of 
+# 	parameters
+#
+# Author: Ishwarya Ananthabhotla
+######################################
+
+import numpy as np
+# matplotlib for displaying the output
+import matplotlib.pyplot as plt
+import matplotlib.style as ms
+
+# and IPython.display for audio output
+import IPython.display
+from IPython.display import Audio
+
+# Librosa for audio
+import librosa
+# And the display module for visualization
+import librosa.display
+from scipy import signal
+import sklearn.cluster
+
+# from VS pipeline
+import extract
+import os
+
+# GENRE TAGS
+GENRE_TAGS = ['blues']
+
+def preprocess(source_file_path):
+	param_dict_list = []
+
+	for i, track in enumerate(os.listdir(source_file_path)):
+		track, sr = librosa.load(source_file_path + track)
+		if GENRE_TAGS[i] == 'jazz':
+			param_dict = feature_extract_jazz(track, sr)
+		elif GENRE_TAGS[i] == 'blues':
+			param_dict = feature_extract_blues(track, sr)
+		elif GENRE_TAGS[i] == 'classical':
+			param_dict = feature_extract_classical(track, sr)
+		elif GENRE_TAGS[i] == 'pop':
+			param_dict = feature_extract_pop(track, sr)
+		else:
+			# implement classification for misc
+			raise NotImplementedError
+
+		param_dict_list.append(param_dict)
+
+	return param_dict_list
+
+
+###################################
+# PROCESSING FOR TAGGED JAZZ
+###################################
+
+def window_signal(sig):
+    return sig * signal.gaussian(len(sig), std=(2.0*len(sig)/ 8.0))
+
+def boundaries_to_intervals(boundaries):
+    intervals = []
+    for i in range(len(boundaries) - 1):
+        l = [boundaries[i], boundaries[i+1]]
+        intervals.append(l)
+    return np.array(intervals)
+    
+
+# return dict of features for jazz modifications
+def feature_extract_jazz(jazz_track, sr, num_segments=5, seg_thresh=3):
+    # segment boundaries
+    mfcc = librosa.feature.mfcc(y=jazz_track, sr=sr)
+    bounds = librosa.segment.agglomerative(mfcc, num_segments)
+    sample_bounds = librosa.frames_to_samples(bounds, sr)
+    sample_intervals = boundaries_to_intervals(sample_bounds)
+    
+    # clean up short segments
+    del_list = []
+    for i, intr in enumerate(sample_intervals):
+        if intr[1] - intr[0] < seg_thresh * sr:
+            del_list.append(i)
+    sample_intervals = np.delete(sample_intervals, del_list, axis=0)
+    
+    # corresponding intervals
+    #   TODO: determine segment key/ progression
+    shift_by = []
+    
+    # extracted subsample - using VS pipeline
+    jazz_harm, jazz_perc = librosa.effects.hpss(jazz_track)
+    rep_samples_audio, num_seg = extract.extract_sample(jazz_harm, sr, 1)
+    signal_sample = rep_samples_audio[0][0]
+    
+    # extract beats to overlay VS sample
+    onset_env = librosa.onset.onset_strength(jazz_perc, sr=sr,
+        aggregate=np.median)
+    _, beats = librosa.beat.beat_track(onset_envelope=onset_env,
+        sr=sr)
+    beat_samples = librosa.frames_to_samples(beats)
+    
+    return {'bounds':sample_intervals, 'shift': shift_by, 'alert': signal_sample, 'beats': beat_samples}
+
+########################################
+# PROCESSING FOR TAGGED BLUES/ RHYTHMIC
+########################################
+
+def feature_extract_blues(blues_track, sr, onset_threshold=0.7):
+    # get rhythm overlay
+    hop_length = 512
+    blues_harm, blues_perc = librosa.effects.hpss(blues_track)
+    onset_env = librosa.onset.onset_strength(blues_perc, sr=sr,
+        aggregate=np.median)
+    _, beats = librosa.beat.beat_track(onset_envelope=onset_env,
+        sr=sr)
+    
+    times = librosa.frames_to_time(np.arange(len(onset_env)),
+    sr=sr, hop_length=hop_length)
+    
+    for i, b in enumerate(beats):
+        # get the corresponding onset env value
+        t_b = times[b]
+        on_f_b = librosa.time_to_frames([t_b], sr=sr, hop_length=hop_length)
+        if librosa.util.normalize(onset_env)[on_f_b] >= onset_threshold:        
+            beat_start = librosa.frames_to_samples([b])[0]
+            beat_end = librosa.frames_to_samples([beats[i+1]])[0]
+            
+            # take the first sample that we find? TODO: what other criteria?
+            break
+            
+    overlay_sample = blues_perc[beat_start:beat_end]
+    
+    # get beat samples
+    beat_samples = librosa.frames_to_samples(beats, hop_length=hop_length)
+    
+    # get extracted subsample - using VS pipeline
+    rep_samples_audio, num_seg = extract.extract_sample(blues_harm, sr, 1)
+    signal_sample = rep_samples_audio[0][0]
+    
+    return {'overlay': overlay_sample, 'beats': beat_samples, 'alert': signal_sample}
+
+########################################
+# PROCESSING FOR TAGGED CLASSICAL
+########################################
+
+def moving_average_filter(data, N):
+    out = []
+    c = int(N / 2.0)
+    for i, n in enumerate(data):
+        if i < c or i > len(data) - c:
+            out.append(n)
+        else:
+            out.append(np.mean(data[i-c:i+c]))
+            
+    return np.array(out)
+
+def delay(tempo, d_min=0.5, d_max=2):
+    delay_curve = []
+    t_max = np.max(tempo)    
+    t_min = np.min(tempo)
+    for val in tempo:
+        delay_curve.append( d_max + ((d_min - d_max) / (t_max - t_min)) * (val - t_min) ) 
+    return np.array(delay_curve)
+
+def echo_amplitude(amplitude, e_min=0.6, e_max=1.4):
+    a_max = np.max(amplitude)
+    a_min = np.min(amplitude)    
+    echo_curve = []
+    for val in amplitude:
+        echo_curve.append( e_min + ((e_max - e_min) / (a_max - a_min)) * (val - a_min) )
+    return np.array(echo_curve)
+
+# number of segments should be proportional to track length and relevant to genre
+def feature_extract_classical(classical_track, sr, num_segments=10, seg_thresh=2, smooth_coeff=811):
+    # SEGMENTATION
+    # segments
+    mfcc = librosa.feature.mfcc(y=classical_track, sr=sr)
+    bounds = librosa.segment.agglomerative(mfcc, num_segments)
+    sample_bounds = librosa.frames_to_samples(bounds, sr)
+    sample_intervals = boundaries_to_intervals(sample_bounds)
+    
+    # clean up short segments
+    del_list = []
+    for i, intr in enumerate(sample_intervals):
+        if intr[1] - intr[0] < seg_thresh * sr:
+            del_list.append(i)
+    sample_intervals = np.delete(sample_intervals, del_list, axis=0)
+    
+    # TEMPO CHANGE
+    # tempo curve
+    onset_env = librosa.onset.onset_strength(classical_track, sr=sr)
+    dtempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr,
+                            aggregate=None)
+    tempo_curve = moving_average_filter(dtempo, smooth_coeff)
+    
+    # ECHO
+    # echo amplitude
+    lpf_amplitude = moving_average_filter(np.abs(classical_track), sr) # 1 sec - long filter
+    echo_ampl_curve = echo_amplitude(lpf_amplitude)
+    
+    # delay curve
+    delay_curve = delay(tempo_curve)
+    
+    # EXTRACTED SAMPLE
+    classical_harm = librosa.effects.harmonic(classical_track)
+    rep_samples_audio, num_seg = extract.extract_sample(classical_harm, sr, 1)
+    signal_sample = rep_samples_audio[0][0]
+    
+    return {'bounds':sample_intervals, 'tempo': tempo_curve, 'echo':echo_ampl_curve, 'delay': delay_curve, 'alert':signal_sample}
+
+
+########################################
+# PROCESSING FOR TAGGED POP
+########################################
+    
+def feature_extract_pop(pop_track, sr, num_segments=8, num_clusters=3, seg_thresh=3):
+    
+    # compute boundaries
+    mfcc = librosa.feature.mfcc(y=pop_track, sr=sr)
+    tempo, beats = librosa.beat.beat_track(y=pop_track, sr=sr, trim=False)
+    Msync = librosa.util.sync(mfcc, beats, aggregate=np.median)
+    bounds = librosa.segment.agglomerative(Msync, num_segments)
+    print bounds
+    beat_times = librosa.frames_to_time(librosa.util.fix_frames(beats,
+                                                            x_min=0,
+                                                            x_max=mfcc.shape[1]),
+                                                            sr=sr)
+    bound_times = beat_times[bounds]
+    bound_samples = librosa.time_to_samples(bound_times, sr=sr)
+    sample_intervals = boundaries_to_intervals(bound_samples)
+    
+    # computer associated cluster labels
+    KM = sklearn.cluster.KMeans(n_clusters=num_clusters)
+    labels = KM.fit_predict(Msync.T)
+    cluster_labels = []
+    for i in range(len(bounds) - 1):
+        counts = np.bincount(labels[bounds[i]:bounds[i+1]])
+        cluster_labels.append( np.argmax(counts) )
+    
+    # clean up segments/ labels by size
+    '''
+    del_list = []
+    for i, intr in enumerate(sample_intervals):
+        if intr[1] - intr[0] < seg_thresh * sr:
+            del_list.append(i)
+    sample_intervals = np.delete(sample_intervals, del_list, axis=0)
+    cluster_labels = np.delete(cluster_labels, del_list, axis=0)
+    '''
+    
+    # extracted sample
+    pop_harm = librosa.effects.harmonic(pop_track)
+    rep_samples_audio, num_seg = extract.extract_sample(pop_harm, sr, 1)
+    signal_sample = rep_samples_audio[0][0]
+    
+    # beat samples for VS
+    beat_samples = librosa.frames_to_samples(beats)
+    
+    return {'bounds':sample_intervals, 'label': cluster_labels, 'alert': signal_sample, 'beats': beat_samples}
+
+
+if __name__ == "__main__":
+	param_dict_list = preprocess('tracks/')
+
+	# POP TEST
+	# param_dict = param_dict_list[0]
+	# print param_dict['bounds']
+	# print param_dict['label']
+	# print param_dict['beats']
+
+	# JAZZ TEST
+	# param_dict = param_dict_list[0]
+	# print param_dict['bounds']
+	# print param_dict['shift']
+	# print param_dict['beats']
+
+	# CLASSICAL TEST
+	# param_dict = param_dict_list[0]
+	# print param_dict['tempo']
+	# print param_dict['echo']
+	# print param_dict['delay']
+
+	# BLUES TEST
+	# param_dict = param_dict_list[0]
+	# print param_dict['overlay']
+	# print param_dict['beats']
+	
+
