@@ -1,8 +1,8 @@
 #####################################
 # Music Signaling Pipeline Prototype
-#	Pre-Processing: read ALL tracks 
-#	and compute dictionary of 
-# 	parameters
+#   Pre-Processing: read ALL tracks 
+#   and compute dictionary of 
+#   parameters
 #
 # Author: Ishwarya Ananthabhotla
 ######################################
@@ -27,29 +27,29 @@ import sklearn.cluster
 import extract
 import os
 
-# GENRE TAGS
-GENRE_TAGS = ['blues']
+# remixatron
+import Remixatron as R
 
-def preprocess(source_file_path):
-	param_dict_list = []
+def preprocess(source_file_path, genre_tags):
+    param_dict_list = []
 
-	for i, track in enumerate(os.listdir(source_file_path)):
-		track, sr = librosa.load(source_file_path + track)
-		if GENRE_TAGS[i] == 'jazz':
-			param_dict = feature_extract_jazz(track, sr)
-		elif GENRE_TAGS[i] == 'blues':
-			param_dict = feature_extract_blues(track, sr)
-		elif GENRE_TAGS[i] == 'classical':
-			param_dict = feature_extract_classical(track, sr)
-		elif GENRE_TAGS[i] == 'pop':
-			param_dict = feature_extract_pop(track, sr)
-		else:
-			# implement classification for misc
-			raise NotImplementedError
+    for i, track_name in enumerate(os.listdir(source_file_path)):
+        track, sr = librosa.load(source_file_path + track_name)
+        if genre_tags[i] == 'jazz':
+            param_dict = feature_extract_jazz(track, sr)
+        elif genre_tags[i] == 'blues':
+            param_dict = feature_extract_blues(track, sr)
+        elif genre_tags[i] == 'classical':
+            param_dict = feature_extract_classical(track, sr)
+        elif genre_tags[i] == 'pop':
+            param_dict = feature_extract_pop(source_file_path + track_name, sr)
+        else:
+            # implement classification for misc
+            raise NotImplementedError
 
-		param_dict_list.append(param_dict)
+        param_dict_list.append(param_dict)
 
-	return param_dict_list
+    return param_dict_list
 
 
 ###################################
@@ -68,11 +68,11 @@ def boundaries_to_intervals(boundaries):
     
 
 # return dict of features for jazz modifications
-def feature_extract_jazz(jazz_track, sr, num_segments=5, seg_thresh=3):
+def feature_extract_jazz(jazz_track, sr, num_segments=8, seg_thresh=3):
     # segment boundaries
     mfcc = librosa.feature.mfcc(y=jazz_track, sr=sr)
     bounds = librosa.segment.agglomerative(mfcc, num_segments)
-    sample_bounds = librosa.frames_to_samples(bounds, sr)
+    sample_bounds = librosa.frames_to_samples(bounds)
     sample_intervals = boundaries_to_intervals(sample_bounds)
     
     # clean up short segments
@@ -153,7 +153,15 @@ def moving_average_filter(data, N):
             
     return np.array(out)
 
-def delay(tempo, d_min=0.5, d_max=2):
+def normalized_tempo(tempo_curve, t_min=0.0, t_max=1.0):
+    d_max = np.max(tempo_curve)
+    d_min = np.min(tempo_curve)    
+    normalized_tempo_curve = []
+    for val in tempo_curve:
+        normalized_tempo_curve.append( t_min + ((t_max - t_min) / (d_max - d_min)) * (val - d_min) )
+    return np.array(normalized_tempo_curve)
+
+def delay(tempo, d_min=0.5, d_max=1.0):
     delay_curve = []
     t_max = np.max(tempo)    
     t_min = np.min(tempo)
@@ -175,7 +183,7 @@ def feature_extract_classical(classical_track, sr, num_segments=10, seg_thresh=2
     # segments
     mfcc = librosa.feature.mfcc(y=classical_track, sr=sr)
     bounds = librosa.segment.agglomerative(mfcc, num_segments)
-    sample_bounds = librosa.frames_to_samples(bounds, sr)
+    sample_bounds = librosa.frames_to_samples(bounds)
     sample_intervals = boundaries_to_intervals(sample_bounds)
     
     # clean up short segments
@@ -191,6 +199,7 @@ def feature_extract_classical(classical_track, sr, num_segments=10, seg_thresh=2
     dtempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr,
                             aggregate=None)
     tempo_curve = moving_average_filter(dtempo, smooth_coeff)
+    normalized_tempo_curve = normalized_tempo(tempo_curve)
     
     # ECHO
     # echo amplitude
@@ -205,82 +214,46 @@ def feature_extract_classical(classical_track, sr, num_segments=10, seg_thresh=2
     rep_samples_audio, num_seg = extract.extract_sample(classical_harm, sr, 1)
     signal_sample = rep_samples_audio[0][0]
     
-    return {'bounds':sample_intervals, 'tempo': tempo_curve, 'echo':echo_ampl_curve, 'delay': delay_curve, 'alert':signal_sample}
+    return {'bounds':sample_intervals, 'tempo': normalized_tempo_curve, 'echo':echo_ampl_curve, 'delay': delay_curve, 'alert':signal_sample}
 
 
 ########################################
 # PROCESSING FOR TAGGED POP
 ########################################
     
-def feature_extract_pop(pop_track, sr, num_segments=8, num_clusters=3, seg_thresh=3):
-    
-    # compute boundaries
-    mfcc = librosa.feature.mfcc(y=pop_track, sr=sr)
-    tempo, beats = librosa.beat.beat_track(y=pop_track, sr=sr, trim=False)
-    Msync = librosa.util.sync(mfcc, beats, aggregate=np.median)
-    bounds = librosa.segment.agglomerative(Msync, num_segments)
-    print bounds
-    beat_times = librosa.frames_to_time(librosa.util.fix_frames(beats,
-                                                            x_min=0,
-                                                            x_max=mfcc.shape[1]),
-                                                            sr=sr)
-    bound_times = beat_times[bounds]
-    bound_samples = librosa.time_to_samples(bound_times, sr=sr)
-    sample_intervals = boundaries_to_intervals(bound_samples)
-    
-    # computer associated cluster labels
-    KM = sklearn.cluster.KMeans(n_clusters=num_clusters)
-    labels = KM.fit_predict(Msync.T)
-    cluster_labels = []
-    for i in range(len(bounds) - 1):
-        counts = np.bincount(labels[bounds[i]:bounds[i+1]])
-        cluster_labels.append( np.argmax(counts) )
-    
-    # clean up segments/ labels by size
-    '''
-    del_list = []
-    for i, intr in enumerate(sample_intervals):
-        if intr[1] - intr[0] < seg_thresh * sr:
-            del_list.append(i)
-    sample_intervals = np.delete(sample_intervals, del_list, axis=0)
-    cluster_labels = np.delete(cluster_labels, del_list, axis=0)
-    '''
-    
-    # extracted sample
-    pop_harm = librosa.effects.harmonic(pop_track)
-    rep_samples_audio, num_seg = extract.extract_sample(pop_harm, sr, 1)
-    signal_sample = rep_samples_audio[0][0]
-    
-    # beat samples for VS
-    beat_samples = librosa.frames_to_samples(beats)
-    
-    return {'bounds':sample_intervals, 'label': cluster_labels, 'alert': signal_sample, 'beats': beat_samples}
+def feature_extract_pop(source_file_path, sr, num_segments=8, num_clusters=3, seg_thresh=3):
+
+    # return the jukebox object computed by the remixatron
+
+    jukebox = R.InfiniteJukebox(filename=source_file_path, async=False)
+
+    return {'jukebox': jukebox}
 
 
 if __name__ == "__main__":
-	param_dict_list = preprocess('tracks/')
+    param_dict_list = preprocess('tracks/')
 
-	# POP TEST
-	# param_dict = param_dict_list[0]
-	# print param_dict['bounds']
-	# print param_dict['label']
-	# print param_dict['beats']
+    # POP TEST
+    # param_dict = param_dict_list[0]
+    # print param_dict['bounds']
+    # print param_dict['label']
+    # print param_dict['beats']
 
-	# JAZZ TEST
-	# param_dict = param_dict_list[0]
-	# print param_dict['bounds']
-	# print param_dict['shift']
-	# print param_dict['beats']
+    # JAZZ TEST
+    # param_dict = param_dict_list[0]
+    # print param_dict['bounds']
+    # print param_dict['shift']
+    # print param_dict['beats']
 
-	# CLASSICAL TEST
-	# param_dict = param_dict_list[0]
-	# print param_dict['tempo']
-	# print param_dict['echo']
-	# print param_dict['delay']
+    # CLASSICAL TEST
+    # param_dict = param_dict_list[0]
+    # print param_dict['tempo']
+    # print param_dict['echo']
+    # print param_dict['delay']
 
-	# BLUES TEST
-	# param_dict = param_dict_list[0]
-	# print param_dict['overlay']
-	# print param_dict['beats']
-	
+    # BLUES TEST
+    # param_dict = param_dict_list[0]
+    # print param_dict['overlay']
+    # print param_dict['beats']
+    
 
