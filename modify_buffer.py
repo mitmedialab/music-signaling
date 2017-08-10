@@ -26,14 +26,46 @@ import global_settings as gs
 
 import time
 
-def taper_down_up(range_start, range_end):
-	pass
+import pydub
+
+# modify global buffer in place 
+#
+# \___/
+#
+def taper_buffer_edges(range_start, range_end, fade_time, high_end=1.0, low_end=0.3):
+	fade_samples = int(fade_time * gs.sr)
+	# ramp down
+	ramp_down = np.array([(-1.0 * (high_end - low_end) / fade_samples) * x + high_end for x in range(fade_samples)])
+	gs.audio_buffer[range_start - fade_samples: range_start] *= ramp_down 
+
+	#ramp up 
+	ramp_up = np.array([(-1.0 * (low_end - high_end) / fade_samples) * x + low_end for x in range(fade_samples)])
+	gs.audio_buffer[range_end: range_end + fade_samples] *= ramp_up
+
+	return 
+
+
+# modify global buffer in place 
+#  ___
+# /   \
+#
+def square_window(sig, high_end=1.0, low_end=0.5):
+
+	fade_samples = int(len(sig) * (1.0 / 8.0))
+
+	# ramp up
+	ramp_up = np.array([(-1.0 * (low_end - high_end) / fade_samples) * x + low_end for x in range(fade_samples)])
+	sig[:fade_samples] *= ramp_up
+
+	#ramp down
+	ramp_down = np.array([(-1.0 * (high_end - low_end) / fade_samples) * x + high_end for x in range(fade_samples)])
+	sig[-fade_samples:] *= ramp_down
+
+	return sig
 
 def window(sig):
 	return sig * signal.gaussian(len(sig), std=(2.0*len(sig)/ 8.0))
 
-def weak_window(sig):
-	pass
 
 def modify_jazz(level, param_dict, start, dur=2, segment=False):
 	# TODO: shift-by
@@ -71,7 +103,7 @@ def modify_jazz(level, param_dict, start, dur=2, segment=False):
 	return True
 
 
-def modify_classical(level, param_dict, start, dur=5, sig_dur=2, segment=False):
+def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 	print "Classical modification begun.."
 
 	# snap to segment or start marker
@@ -84,21 +116,28 @@ def modify_classical(level, param_dict, start, dur=5, sig_dur=2, segment=False):
 		nearest_bound = start
 
 	# level 0 - tempo change -- volume envelope needs fixing!!
-	if level == 0:
-		offset = 1.5
+	if level == 1:
+		offset = 1.0
 		# in frames, conversion to samples required
 		tempo_curve = param_dict['tempo']
 		nearest_bound_in_frame = librosa.samples_to_frames([nearest_bound])[0]
 		tempo_factor = tempo_curve[nearest_bound_in_frame]
+		print "tempo factor: ", tempo_factor
+
+		# change dur to account for tempo factor
+		dur = int(np.ceil(dur * (tempo_factor + offset)))
+		print "dur: ", dur
 
 		clip = gs.audio_buffer[nearest_bound : nearest_bound + (dur*gs.sr)]
 		shrink = librosa.effects.time_stretch(clip, offset + tempo_factor)
 		
-		remainder = np.concatenate((shrink, gs.audio_buffer[nearest_bound + (dur*gs.sr):]))
+		remainder = np.concatenate((square_window(shrink), gs.audio_buffer[nearest_bound + (dur*gs.sr):]))
 		
 		gs.audio_buffer[nearest_bound : nearest_bound + len(remainder)] = remainder
 		
 		gs.audio_buffer[-1 * (len(clip) - len(shrink)):] = 0
+
+		taper_buffer_edges(nearest_bound, nearest_bound + len(shrink), 1.0)
 		
 
 		# if stretch instead of shrink		
@@ -106,13 +145,16 @@ def modify_classical(level, param_dict, start, dur=5, sig_dur=2, segment=False):
 		# gs.audio_buffer[nearest_bound:] = np.concatenate( (window(stretch), window(gs.audio_buffer[nearest_bound + (dur*gs.sr):])) )
 
 	# level 1 - echo with delay
-	elif level == 1:
+	elif level == 0:
+		offset = 5512
 		echo_amp_curve = param_dict['echo']
 		echo_amp = echo_amp_curve[nearest_bound]
 		delay_curve = param_dict['delay']
 		nearest_bound_in_frame = librosa.samples_to_frames([nearest_bound])[0]
 		delay_in_secs = delay_curve[nearest_bound_in_frame]
 		delay_in_samps = int(delay_in_secs * gs.sr)
+		print delay_in_samps
+		delay_in_samps += offset
 		print delay_in_samps
 		clip = gs.audio_buffer[nearest_bound : nearest_bound + (dur*gs.sr)]
 		gs.audio_buffer[nearest_bound + delay_in_samps: nearest_bound + delay_in_samps + (dur*gs.sr)] += ((0.8*echo_amp) * window(clip))
@@ -123,8 +165,9 @@ def modify_classical(level, param_dict, start, dur=5, sig_dur=2, segment=False):
 		alert = param_dict['alert']
 		if len(alert) > sig_dur * gs.sr:
 			alert = alert[:sig_dur * gs.sr]
-		remainder = np.concatenate((window(alert), gs.audio_buffer[nearest_bound + len(alert):]))		
+		remainder = np.concatenate((square_window(alert), gs.audio_buffer[nearest_bound + len(alert):]))		
 		gs.audio_buffer[nearest_bound:nearest_bound + len(remainder)] = remainder
+		taper_buffer_edges(nearest_bound, nearest_bound + len(alert), 1.0, low_end=0.0)
 
 	print "Classical modification completed.."
 	return True

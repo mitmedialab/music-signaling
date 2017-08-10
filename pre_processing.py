@@ -107,7 +107,7 @@ def feature_extract_jazz(jazz_track, sr, num_segments=8, seg_thresh=3):
 def feature_extract_blues(blues_track, sr, onset_threshold=0.7):
     # get rhythm overlay
     hop_length = 512
-    blues_harm, blues_perc = librosa.effects.hpss(blues_track)
+    blues_harm, blues_perc = librosa.effects.hpss(blues_track, margin=(1.0, 5.0))
     onset_env = librosa.onset.onset_strength(blues_perc, sr=sr,
         aggregate=np.median)
     _, beats = librosa.beat.beat_track(onset_envelope=onset_env,
@@ -116,16 +116,30 @@ def feature_extract_blues(blues_track, sr, onset_threshold=0.7):
     times = librosa.frames_to_time(np.arange(len(onset_env)),
     sr=sr, hop_length=hop_length)
     
+    # for i, b in enumerate(beats):
+    #     # get the corresponding onset env value
+    #     t_b = times[b]
+    #     on_f_b = librosa.time_to_frames([t_b], sr=sr, hop_length=hop_length)
+    #     if librosa.util.normalize(onset_env)[on_f_b] >= onset_threshold:        
+    #         beat_start = librosa.frames_to_samples([b])[0]
+    #         beat_end = librosa.frames_to_samples([beats[i+1]])[0]
+            
+    #         # take the first sample that we find? TODO: what other criteria?
+    #         break
+
+    prev_val = 0
+    
     for i, b in enumerate(beats):
         # get the corresponding onset env value
         t_b = times[b]
         on_f_b = librosa.time_to_frames([t_b], sr=sr, hop_length=hop_length)
-        if librosa.util.normalize(onset_env)[on_f_b] >= onset_threshold:        
-            beat_start = librosa.frames_to_samples([b])[0]
-            beat_end = librosa.frames_to_samples([beats[i+1]])[0]
-            
-            # take the first sample that we find? TODO: what other criteria?
-            break
+        if librosa.util.normalize(onset_env)[on_f_b] >= prev_val:        
+            prev_val = librosa.util.normalize(onset_env)[on_f_b]
+            keep_beat_start = b
+            keep_beat_end = beats[i+1]
+
+    beat_start = librosa.frames_to_samples([keep_beat_start])[0]
+    beat_end = librosa.frames_to_samples([keep_beat_end])[0]
             
     overlay_sample = blues_perc[beat_start:beat_end]
     
@@ -154,8 +168,10 @@ def moving_average_filter(data, N):
     return np.array(out)
 
 def normalized_tempo(tempo_curve, t_min=0.0, t_max=1.0):
-    d_max = np.max(tempo_curve)
-    d_min = np.min(tempo_curve)    
+    # d_max = np.max(tempo_curve)
+    # d_min = np.min(tempo_curve)  
+    d_max = 240.0  # bpm
+    d_min = 0.0    # bpm
     normalized_tempo_curve = []
     for val in tempo_curve:
         normalized_tempo_curve.append( t_min + ((t_max - t_min) / (d_max - d_min)) * (val - d_min) )
@@ -163,8 +179,10 @@ def normalized_tempo(tempo_curve, t_min=0.0, t_max=1.0):
 
 def delay(tempo, d_min=0.5, d_max=1.0):
     delay_curve = []
-    t_max = np.max(tempo)    
-    t_min = np.min(tempo)
+    # t_max = np.max(tempo)    
+    # t_min = np.min(tempo)
+    t_max = 240.0 # bpm
+    t_min = 0.0   # bpm
     for val in tempo:
         delay_curve.append( d_max + ((d_min - d_max) / (t_max - t_min)) * (val - t_min) ) 
     return np.array(delay_curve)

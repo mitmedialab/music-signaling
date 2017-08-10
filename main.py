@@ -75,9 +75,9 @@ def modify_buffer(param_dict_list, genre_tags, dur=2, buff_time=3):
     # for pop use
     original_audio = gs.audio_buffer.copy()
 
-    while count < 3:
+    while count < 8:
         time.sleep(20) # test - replace with socket
-        level = 2 # test - replace with socket
+        level = 1 # test - replace with socket
 
         print "Modification Signaled.."
         start = gs.ptr + (buff_time * (hop_size_bytes * 16))
@@ -110,6 +110,36 @@ def modify_buffer(param_dict_list, genre_tags, dur=2, buff_time=3):
         count +=1
 
 def start_jukebox_process(param_dict, start):
+
+    ######################################################
+    # weak trapezoidal taper window for each beat
+    def beat_window(sig, high_end=1.0, low_end=0.5):
+        fade_samples = int(len(sig) * (1.0 / 8.0))
+
+        # ramp up
+        ramp_up = np.array([(-1.0 * (low_end - high_end) / fade_samples) * x + low_end for x in range(fade_samples)])
+        sig[:fade_samples] *= ramp_up
+
+        #ramp down
+        ramp_down = np.array([(-1.0 * (high_end - low_end) / fade_samples) * x + high_end for x in range(fade_samples)])
+        sig[-fade_samples:] *= ramp_down
+
+        return sig
+
+
+    def taper_buffer_edges(range_start, range_end, fade_time, high_end=1.0, low_end=0.5):
+        fade_samples = int(fade_time * gs.sr)
+        # ramp down
+        ramp_down = np.array([(-1.0 * (high_end - low_end) / fade_samples) * x + high_end for x in range(fade_samples)])
+        gs.audio_buffer[range_start - fade_samples: range_start] *= ramp_down 
+
+        #ramp up 
+        ramp_up = np.array([(-1.0 * (low_end - high_end) / fade_samples) * x + low_end for x in range(fade_samples)])
+        gs.audio_buffer[range_end: range_end + fade_samples] *= ramp_up
+
+        return 
+    #######################################################
+
     print "Starting Jukebox thread.."
 
     jukebox = param_dict['jukebox']
@@ -120,6 +150,7 @@ def start_jukebox_process(param_dict, start):
     # get ordinal beat closest to start, set jkbx ptr to its sample
     nearest_beat_index = np.argwhere(beat_samples >= start)[0][0]
     curr_beat = jukebox.beats[nearest_beat_index]
+    beat_buf = curr_beat['buffer']
     jkbx_ptr = 0L
     jkbx_ptr = int(curr_beat['start'] * gs.sr)
 
@@ -129,14 +160,14 @@ def start_jukebox_process(param_dict, start):
     while jkbx_ptr < len(gs.audio_buffer):
         # insert current beat
 
-        if jkbx_ptr + len(curr_beat['buffer']) > len(gs.audio_buffer):
+        if jkbx_ptr + len(beat_buf) > len(gs.audio_buffer):
             # fill balance with silence
             gs.audio_buffer[-1 * (len(gs.audio_buffer) - jkbx_ptr): ] = 0
             print "Finished Jukebox thread.."
             return
 
-        gs.audio_buffer[jkbx_ptr: jkbx_ptr + len(curr_beat['buffer'])] = curr_beat['buffer']
-        jkbx_ptr += len(curr_beat['buffer'])
+        gs.audio_buffer[jkbx_ptr: jkbx_ptr + len(beat_buf)] = beat_buf
+        jkbx_ptr += len(beat_buf)
 
         # jump next or sequential next?
         # in order to jump : (1) the alert must not have been addressed yet, (2) crossed the latency mark (just for consistency), and (3) must have suitable jump candidates
@@ -144,9 +175,15 @@ def start_jukebox_process(param_dict, start):
             # make the jump
             jump_beat_index = np.random.choice(curr_beat['jump_candidates'])
             curr_beat = jukebox.beats[jump_beat_index]
+            # window this signal and taper surrounding
+            beat_buf = beat_window(curr_beat['buffer'])
+            # taper_buffer_edges(jkbx_ptr, jkbx_ptr + len(beat_buf), 0.25)
+
             previous_alert = gs.pop_alert
         else:
             curr_beat = jukebox.beats[curr_beat['next']]
+            beat_buf = curr_beat['buffer']
+
         time.sleep(0.3)
 
     print "Finished Jukebox thread.."
