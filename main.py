@@ -17,13 +17,14 @@ import time
 import threading
 import os
 import argparse
+import csv
 
 import global_settings as gs
 import pre_processing as pre
 import modify_buffer as mb
 
 # THREAD 1: Write audio from buffer to stream in chunks
-def stream_audio(source_file_path, genre_tags, param_dict_list):
+def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, finished_flag):
     # instantiate PyAudio 
     p = pyaudio.PyAudio()
 
@@ -35,11 +36,16 @@ def stream_audio(source_file_path, genre_tags, param_dict_list):
 
     hop_size_bytes = 1024 * 4 # bytes
 
-    for i, track in enumerate(os.listdir(source_file_path)):
-        gs.audio_buffer, gs.sr = librosa.load(source_file_path + track)
+    for i, track in enumerate(track_names):
+        
+        gs.audio_buffer, gs.sr = librosa.load(track)
         gs.song_index = i
 
-        gs.ptr = 0L        
+        gs.ptr = 0L
+
+        # continue modifier thread
+        modify_flag.set()
+        print "New song loaded!"        
 
         while gs.ptr < len(gs.audio_buffer):
             # convert to string
@@ -52,62 +58,67 @@ def stream_audio(source_file_path, genre_tags, param_dict_list):
 
             print "ptr: ", gs.ptr
 
+        # make modifier thread wait while we load new song
+        modify_flag.clear()
+        print "Loading new song.."
+        time.sleep(1) # wait for buffer thread to reset
+
             
-    # stop stream (4)
+    # stop stream
     stream.stop_stream()
     stream.close()
 
     p.terminate()
 
+    finished_flag.set()
+    print "Finished playlist. Thank you for listening!"
+
 
 # THREAD 2: Monitor socket for flags and call modifiers
-def modify_buffer(param_dict_list, genre_tags, dur=2, buff_time=3):
-    param_dict = param_dict_list[gs.song_index]
-    current_genre = genre_tags[gs.song_index]
+def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, dur=4, buff_time=3):
 
+    # settings
     hop_size_bytes = 1024 * 4 # bytes
-
     done_flag = False
     count = 0
-
     start_jukebox = False
 
-    # for pop use
-    original_audio = gs.audio_buffer.copy()
-
-    while count < 8:
-        time.sleep(20) # test - replace with socket
+    while not finished_flag.isSet() and count < 50: # test - replace with socket
+        # make a modification every N seconds if we can
+        time.sleep(10) # test - replace with socket
         level = 1 # test - replace with socket
 
-        print "Modification Signaled.."
-        start = gs.ptr + (buff_time * (hop_size_bytes * 16))
+        if modify_flag.isSet():
 
-        if start + (dur * gs.sr) >= len(gs.audio_buffer):
-            print "Not enough audio to modify. Sleeping.."
-            continue
+            param_dict = param_dict_list[gs.song_index]
+            current_genre = genre_tags[gs.song_index]
 
-        if current_genre == 'jazz':
-            done_flag = mb.modify_jazz(level, param_dict, start)
-        elif current_genre == 'classical':
-            done_flag = mb.modify_classical(level, param_dict, start)
-        elif current_genre == 'blues':
-            done_flag = mb.modify_blues(level, param_dict, start)
-        elif current_genre == 'pop':
-            if not start_jukebox:
-                start_jukebox = True
-                t3 = threading.Thread(target=start_jukebox_process, args=(param_dict, start, ))
-                t3.daemon = True
-                t3.start()
+            print "Modification Signaled.."
+            start = gs.ptr + (buff_time * (hop_size_bytes * 16))
 
-            done_flag = mb.modify_pop(level, param_dict, start, original_audio)
-        else:
-            raise NotImplementedError 
+            if start + (dur * gs.sr) >= len(gs.audio_buffer):
+                print "Not enough audio left to modify. Sleeping.."
+                continue
 
-        while done_flag == False:
-            pass
+            if current_genre == 'jazz':
+                done_flag = mb.modify_jazz(level, param_dict, start)
+            elif current_genre == 'classical':
+                done_flag = mb.modify_classical(level, param_dict, start)
+            elif current_genre == 'blues':
+                done_flag = mb.modify_blues(level, param_dict, start)
+            elif current_genre == 'pop':
+                if not start_jukebox:
+                    start_jukebox = True
+                    t3 = threading.Thread(target=start_jukebox_process, args=(param_dict, start, ))
+                    t3.daemon = True
+                    t3.start()
+                done_flag = mb.modify_pop(level, param_dict, start)
+            else:
+                raise NotImplementedError 
 
-        done_flag = False
-        count +=1
+            count +=1t
+
+
 
 def start_jukebox_process(param_dict, start):
 
@@ -207,33 +218,45 @@ if __name__ == "__main__":
     # initialize global variables 
     gs.init()
 
-    genre_tags = ['pop']
+    # read tracks and genre tags in from csv\
+    track_names = []
+    genre_tags = []
+
     source_file_path = 'tracks/'
+
+    ifile = open('info.csv', 'rb')
+    reader = csv.reader(ifile)
+    for row in reader:
+        track_names.append(source_file_path + row[0])
+        genre_tags.append(row[1])
+
+    print track_names
+    print genre_tags
+
 
     # preprocess
     if args.preprocess:
         print "Pre-processing.."
-        param_dict_list = pre.preprocess(source_file_path, genre_tags)
+        param_dict_list = pre.preprocess(track_names, genre_tags)
         np.array(param_dict_list).dump("prep.dat")
         print "Finished Pre-processing."
 
     # realtime playback and modification
     if args.start:
         param_dict_list = np.load("prep.dat")
-        t1 = threading.Thread(target=stream_audio, args=(source_file_path,genre_tags,param_dict_list, ))
+        modify_flag = threading.Event()
+        finished_flag = threading.Event()
+
+        t1 = threading.Thread(target=stream_audio, args=(track_names,genre_tags,param_dict_list,modify_flag, finished_flag, ))
         t1.daemon = True
 
-        t2 = threading.Thread(target=modify_buffer, args=(param_dict_list, genre_tags, ))
+        t2 = threading.Thread(target=modify_buffer, args=(param_dict_list, genre_tags,modify_flag, finished_flag, ))
         t2.daemon = True
 
         t1.start()
 
-        print "Waiting for stream to load.."
-        while gs.song_index == None:
-            pass
-        print "Stream Started."
-
         t2.start()
 
-        while True:
-            pass
+        t1.join()
+        t2.join()
+

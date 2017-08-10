@@ -67,7 +67,7 @@ def window(sig):
 	return sig * signal.gaussian(len(sig), std=(2.0*len(sig)/ 8.0))
 
 
-def modify_jazz(level, param_dict, start, dur=2, segment=False):
+def modify_jazz(level, param_dict, start, dur=4, segment=False):
 	# TODO: shift-by
 	print "Jazz modification begun.."
 
@@ -172,7 +172,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 	print "Classical modification completed.."
 	return True
 
-def modify_pop(level, param_dict, start, original_audio, dur=2):
+def modify_pop(level, param_dict, start, dur=2):
 	# write the new start value to the pop song alert flag
 	# jukebox thread should change the next beat
 	gs.pop_alert = start

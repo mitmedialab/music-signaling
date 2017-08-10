@@ -30,11 +30,11 @@ import os
 # remixatron
 import Remixatron as R
 
-def preprocess(source_file_path, genre_tags):
+def preprocess(track_names, genre_tags):
     param_dict_list = []
 
-    for i, track_name in enumerate(os.listdir(source_file_path)):
-        track, sr = librosa.load(source_file_path + track_name)
+    for i, track_name in enumerate(track_names):
+        track, sr = librosa.load(track_name)
         if genre_tags[i] == 'jazz':
             param_dict = feature_extract_jazz(track, sr)
         elif genre_tags[i] == 'blues':
@@ -128,7 +128,7 @@ def feature_extract_blues(blues_track, sr, onset_threshold=0.7):
     #         break
 
     prev_val = 0
-    
+
     for i, b in enumerate(beats):
         # get the corresponding onset env value
         t_b = times[b]
@@ -249,8 +249,8 @@ def feature_extract_pop(source_file_path, sr, num_segments=8, num_clusters=3, se
 
 
 if __name__ == "__main__":
-    param_dict_list = preprocess('tracks/')
-
+    pass
+    
     # POP TEST
     # param_dict = param_dict_list[0]
     # print param_dict['bounds']
