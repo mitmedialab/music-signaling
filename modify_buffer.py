@@ -122,11 +122,9 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		tempo_curve = param_dict['tempo']
 		nearest_bound_in_frame = librosa.samples_to_frames([nearest_bound])[0]
 		tempo_factor = tempo_curve[nearest_bound_in_frame]
-		print "tempo factor: ", tempo_factor
 
 		# change dur to account for tempo factor
 		dur = int(np.ceil(dur * (tempo_factor + offset)))
-		print "dur: ", dur
 
 		clip = gs.audio_buffer[nearest_bound : nearest_bound + (dur*gs.sr)]
 		shrink = librosa.effects.time_stretch(clip, offset + tempo_factor)

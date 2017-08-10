@@ -18,6 +18,7 @@ import threading
 import os
 import argparse
 import csv
+import socket
 
 import global_settings as gs
 import pre_processing as pre
@@ -75,50 +76,61 @@ def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, finished
 
 
 # THREAD 2: Monitor socket for flags and call modifiers
-def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, dur=4, buff_time=3):
+def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, connection, dur=4, buff_time=1, msg_length=5):
 
-    # settings
+    
+    # modification settings
     hop_size_bytes = 1024 * 4 # bytes
     done_flag = False
     count = 0
     start_jukebox = False
+    msg = ''
 
-    while not finished_flag.isSet() and count < 50: # test - replace with socket
-        # make a modification every N seconds if we can
-        time.sleep(10) # test - replace with socket
-        level = 1 # test - replace with socket
+    while not finished_flag.isSet(): # test - replace with socket
 
-        if modify_flag.isSet():
+        msg = connection.recv(msg_length)
 
-            param_dict = param_dict_list[gs.song_index]
-            current_genre = genre_tags[gs.song_index]
+        if len(msg) == msg_length:
+            if modify_flag.isSet():
+                _, level = msg.split(':')
+                level = int(level)
 
-            print "Modification Signaled.."
-            start = gs.ptr + (buff_time * (hop_size_bytes * 16))
+                param_dict = param_dict_list[gs.song_index]
+                current_genre = genre_tags[gs.song_index]
 
-            if start + (dur * gs.sr) >= len(gs.audio_buffer):
-                print "Not enough audio left to modify. Sleeping.."
-                continue
+                print "Modification Signaled.."
+                start = gs.ptr + (buff_time * (hop_size_bytes * 16))
 
-            if current_genre == 'jazz':
-                done_flag = mb.modify_jazz(level, param_dict, start)
-            elif current_genre == 'classical':
-                done_flag = mb.modify_classical(level, param_dict, start)
-            elif current_genre == 'blues':
-                done_flag = mb.modify_blues(level, param_dict, start)
-            elif current_genre == 'pop':
-                if not start_jukebox:
-                    start_jukebox = True
-                    t3 = threading.Thread(target=start_jukebox_process, args=(param_dict, start, ))
-                    t3.daemon = True
-                    t3.start()
-                done_flag = mb.modify_pop(level, param_dict, start)
+                if start + (dur * gs.sr) >= len(gs.audio_buffer):
+                    print "Not enough audio left to modify. Sleeping.."
+                    continue
+
+                if current_genre == 'jazz':
+                    done_flag = mb.modify_jazz(level, param_dict, start)
+                elif current_genre == 'classical':
+                    done_flag = mb.modify_classical(level, param_dict, start)
+                elif current_genre == 'blues':
+                    done_flag = mb.modify_blues(level, param_dict, start)
+                elif current_genre == 'pop':
+                    if not start_jukebox:
+                        start_jukebox = True
+                        t3 = threading.Thread(target=start_jukebox_process, args=(param_dict, start, ))
+                        t3.daemon = True
+                        t3.start()
+                    done_flag = mb.modify_pop(level, param_dict, start)
+                else:
+                    raise NotImplementedError 
+
+                count +=1
             else:
-                raise NotImplementedError 
+                # new song, reset
+                start_jukebox = False
+                count = 0
 
-            count +=1t
+            # throw away messages lost on reset    
+            msg = ""
 
-
+    connection.close()
 
 def start_jukebox_process(param_dict, start):
 
@@ -204,6 +216,15 @@ def start_jukebox_process(param_dict, start):
 def convert(in_buffer):
     return (in_buffer.T.astype(np.float32)) /  np.iinfo(np.int16).max
 
+def start_server():
+    # server settings
+    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serversocket.bind(('localhost', 8089))
+    serversocket.listen(1) # become a server socket, maximum 5 connections
+    print "Please begin client application: "
+    connection, address = serversocket.accept()
+    return connection
+
 
 
 if __name__ == "__main__":
@@ -241,6 +262,9 @@ if __name__ == "__main__":
         np.array(param_dict_list).dump("prep.dat")
         print "Finished Pre-processing."
 
+    # initialize server/ client
+    connection = start_server()
+
     # realtime playback and modification
     if args.start:
         param_dict_list = np.load("prep.dat")
@@ -250,7 +274,7 @@ if __name__ == "__main__":
         t1 = threading.Thread(target=stream_audio, args=(track_names,genre_tags,param_dict_list,modify_flag, finished_flag, ))
         t1.daemon = True
 
-        t2 = threading.Thread(target=modify_buffer, args=(param_dict_list, genre_tags,modify_flag, finished_flag, ))
+        t2 = threading.Thread(target=modify_buffer, args=(param_dict_list, genre_tags,modify_flag, finished_flag,connection, ))
         t2.daemon = True
 
         t1.start()
