@@ -117,7 +117,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 
 	# level 0 - tempo change -- volume envelope needs fixing!!
 	if level == 1:
-		offset = 1.0
+		offset = 0.8
 		# in frames, conversion to samples required
 		tempo_curve = param_dict['tempo']
 		nearest_bound_in_frame = librosa.samples_to_frames([nearest_bound])[0]
@@ -144,7 +144,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 
 	# level 1 - echo with delay
 	elif level == 0:
-		offset = 5512
+		offset = int(gs.sr / 2.0)
 		echo_amp_curve = param_dict['echo']
 		echo_amp = echo_amp_curve[nearest_bound]
 		delay_curve = param_dict['delay']

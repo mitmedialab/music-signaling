@@ -216,10 +216,10 @@ def start_jukebox_process(param_dict, start):
 def convert(in_buffer):
     return (in_buffer.T.astype(np.float32)) /  np.iinfo(np.int16).max
 
-def start_server():
+def start_server(host='localhost', port=8089):
     # server settings
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serversocket.bind(('localhost', 8089))
+    serversocket.bind((host, port))
     serversocket.listen(1) # become a server socket, maximum 5 connections
     print "Please begin client application: "
     connection, address = serversocket.accept()
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     # initialize global variables 
     gs.init()
 
-    # read tracks and genre tags in from csv\
+    # read tracks and genre tags in from csv
     track_names = []
     genre_tags = []
 
@@ -278,7 +278,6 @@ if __name__ == "__main__":
         t2.daemon = True
 
         t1.start()
-
         t2.start()
 
         t1.join()

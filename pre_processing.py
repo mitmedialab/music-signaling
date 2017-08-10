@@ -42,7 +42,7 @@ def preprocess(track_names, genre_tags):
         elif genre_tags[i] == 'classical':
             param_dict = feature_extract_classical(track, sr)
         elif genre_tags[i] == 'pop':
-            param_dict = feature_extract_pop(source_file_path + track_name, sr)
+            param_dict = feature_extract_pop(track_name, sr)
         else:
             # implement classification for misc
             raise NotImplementedError
@@ -239,11 +239,11 @@ def feature_extract_classical(classical_track, sr, num_segments=10, seg_thresh=2
 # PROCESSING FOR TAGGED POP
 ########################################
     
-def feature_extract_pop(source_file_path, sr, num_segments=8, num_clusters=3, seg_thresh=3):
+def feature_extract_pop(track_name, sr, num_segments=8, num_clusters=3, seg_thresh=3):
 
     # return the jukebox object computed by the remixatron
 
-    jukebox = R.InfiniteJukebox(filename=source_file_path, async=False)
+    jukebox = R.InfiniteJukebox(filename=track_name, async=False)
 
     return {'jukebox': jukebox}
 
