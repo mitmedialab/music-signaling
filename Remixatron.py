@@ -312,6 +312,7 @@ class InfiniteJukebox(object):
         info = []
 
         bytes_per_second = int(round(len(self.raw_audio) / self.duration))
+        print "BPS: ", bytes_per_second
 
         last_cluster = -1
         current_segment = -1
@@ -344,10 +345,12 @@ class InfiniteJukebox(object):
             else:
                 final_beat['start_index'] = int(final_beat['start'] * bytes_per_second)
 
+
             final_beat['stop_index'] = int(math.ceil((final_beat['start'] + final_beat['duration']) * bytes_per_second))
 
             # save pointers to the raw bytes for each beat with each beat.
             final_beat['buffer'] = self.raw_audio[ final_beat['start_index'] : final_beat['stop_index'] ]
+
 
             info.append(final_beat)
 

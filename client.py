@@ -14,9 +14,13 @@ class Client:
 		self.clientsocket.connect((host, port))
 
 	# add other parameters here eventually
-	def send_message(self, level, header='msg'):
+	def signal(self, level, header='msg'):
 		msg_length = self.clientsocket.send(header + ':' + str(level))
 		return msg_length
+
+	def end_server(self, header='end'):
+		msg_length = self.clientsocket.send(header + ':' + str(0))
+		return msg_length		
 
 	def end(self):
 		self.clientsocket.close()

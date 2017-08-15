@@ -115,7 +115,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		# simply use start marker
 		nearest_bound = start
 
-	# level 0 - tempo change -- volume envelope needs fixing!!
+	# level 1 - tempo change -- volume envelope needs fixing!!
 	if level == 1:
 		offset = 0.8
 		# in frames, conversion to samples required
@@ -129,7 +129,9 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		clip = gs.audio_buffer[nearest_bound : nearest_bound + (dur*gs.sr)]
 		shrink = librosa.effects.time_stretch(clip, offset + tempo_factor)
 		
-		remainder = np.concatenate((square_window(shrink), gs.audio_buffer[nearest_bound + (dur*gs.sr):]))
+		compensate_factor = 1.2
+
+		remainder = np.concatenate((shrink, gs.audio_buffer[nearest_bound + (dur*gs.sr):]))
 		
 		gs.audio_buffer[nearest_bound : nearest_bound + len(remainder)] = remainder
 		
@@ -142,7 +144,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		# gs.audio_buffer = np.concatenate((gs.audio_buffer, np.zeros(len(stretch) - len(clip))))
 		# gs.audio_buffer[nearest_bound:] = np.concatenate( (window(stretch), window(gs.audio_buffer[nearest_bound + (dur*gs.sr):])) )
 
-	# level 1 - echo with delay
+	# level 0 - echo with delay
 	elif level == 0:
 		offset = int(gs.sr / 2.0)
 		echo_amp_curve = param_dict['echo']
@@ -163,6 +165,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		alert = param_dict['alert']
 		if len(alert) > sig_dur * gs.sr:
 			alert = alert[:sig_dur * gs.sr]
+
 		remainder = np.concatenate((square_window(alert), gs.audio_buffer[nearest_bound + len(alert):]))		
 		gs.audio_buffer[nearest_bound:nearest_bound + len(remainder)] = remainder
 		taper_buffer_edges(nearest_bound, nearest_bound + len(alert), 1.0, low_end=0.0)
@@ -174,11 +177,15 @@ def modify_pop(level, param_dict, start, dur=2):
 	# write the new start value to the pop song alert flag
 	# jukebox thread should change the next beat
 	gs.pop_alert = start
+	gs.pop_subtlety = level
 
 	return True
 
 
 def modify_blues(level, param_dict, start):
+	def average_amplitude(sig):
+		return np.mean(np.abs(sig))
+
 	print "Blues modification begun.."
 
 	start_time = time.time()
@@ -191,9 +198,9 @@ def modify_blues(level, param_dict, start):
 		# 4 beats, equal volume
 
 		if level == 0:
-			vol = 1.8
+			vol_fac = 1.5
 		else:
-			vol = 2.0		
+			vol_fac = 1.8		
 
 		r_sample = []
 		overlay = param_dict['overlay']
@@ -205,7 +212,9 @@ def modify_blues(level, param_dict, start):
 				beat_samp = np.concatenate((window(overlay),np.zeros((beat_size - len(overlay)))))
 
 			r_sample = np.concatenate((r_sample, beat_samp))
-		gs.audio_buffer[nearest_beat[0]:nearest_beat[N-1]] = (vol * r_sample) + gs.audio_buffer[nearest_beat[0]:nearest_beat[N-1]]
+
+		# vol_equalizing = average_amplitude(gs.audio_buffer[nearest_beat[0]:nearest_beat[N-1]]) / average_amplitude(r_sample)
+		gs.audio_buffer[nearest_beat[0]:nearest_beat[N-1]] = (vol_fac * r_sample) + gs.audio_buffer[nearest_beat[0]:nearest_beat[N-1]]
 
 	else:
 		# issue sampled alert

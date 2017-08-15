@@ -129,17 +129,20 @@ def feature_extract_blues(blues_track, sr, onset_threshold=0.7):
 
     prev_val = 0
 
-    for i, b in enumerate(beats):
+    for i, b in enumerate(beats[:-2]):
         # get the corresponding onset env value
         t_b = times[b]
         on_f_b = librosa.time_to_frames([t_b], sr=sr, hop_length=hop_length)
         if librosa.util.normalize(onset_env)[on_f_b] >= prev_val:        
             prev_val = librosa.util.normalize(onset_env)[on_f_b]
             keep_beat_start = b
-            keep_beat_end = beats[i+1]
+            keep_beat_end = beats[i+2]
 
     beat_start = librosa.frames_to_samples([keep_beat_start])[0]
     beat_end = librosa.frames_to_samples([keep_beat_end])[0]
+
+    print "beat start: ", beat_start
+    print "beat end: ", beat_end
             
     overlay_sample = blues_perc[beat_start:beat_end]
     

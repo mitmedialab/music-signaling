@@ -17,4 +17,5 @@ def init():
 	song_index = None
 	global pop_alert
 	pop_alert = False
-	print "Finished initializating"
+	global pop_subtlety
+	print "Finished initializing."
