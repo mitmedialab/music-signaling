@@ -30,15 +30,16 @@ import os
 # remixatron
 import Remixatron as R
 
-def preprocess(track_names, genre_tags):
+def preprocess(track_names, genre_tags, time_sigs):
     param_dict_list = []
 
     for i, track_name in enumerate(track_names):
         track, sr = librosa.load(track_name)
+        track, _ = librosa.effects.trim(track)
         if genre_tags[i] == 'jazz':
             param_dict = feature_extract_jazz(track, sr)
         elif genre_tags[i] == 'blues':
-            param_dict = feature_extract_blues(track, sr)
+            param_dict = feature_extract_blues(track, sr, time_sigs[i])
         elif genre_tags[i] == 'classical':
             param_dict = feature_extract_classical(track, sr)
         elif genre_tags[i] == 'pop':
@@ -104,7 +105,7 @@ def feature_extract_jazz(jazz_track, sr, num_segments=8, seg_thresh=3):
 # PROCESSING FOR TAGGED BLUES/ RHYTHMIC
 ########################################
 
-def feature_extract_blues(blues_track, sr, onset_threshold=0.7):
+def feature_extract_blues(blues_track, sr, current_timesig, onset_threshold=0.7):
     # get rhythm overlay
     hop_length = 512
     blues_harm, blues_perc = librosa.effects.hpss(blues_track, margin=(1.0, 5.0))
@@ -116,34 +117,22 @@ def feature_extract_blues(blues_track, sr, onset_threshold=0.7):
     times = librosa.frames_to_time(np.arange(len(onset_env)),
     sr=sr, hop_length=hop_length)
     
-    # for i, b in enumerate(beats):
-    #     # get the corresponding onset env value
-    #     t_b = times[b]
-    #     on_f_b = librosa.time_to_frames([t_b], sr=sr, hop_length=hop_length)
-    #     if librosa.util.normalize(onset_env)[on_f_b] >= onset_threshold:        
-    #         beat_start = librosa.frames_to_samples([b])[0]
-    #         beat_end = librosa.frames_to_samples([beats[i+1]])[0]
-            
-    #         # take the first sample that we find? TODO: what other criteria?
-    #         break
-
     prev_val = 0
 
-    for i, b in enumerate(beats[:-2]):
+    for i, b in enumerate(beats[:-1]):
         # get the corresponding onset env value
         t_b = times[b]
         on_f_b = librosa.time_to_frames([t_b], sr=sr, hop_length=hop_length)
         if librosa.util.normalize(onset_env)[on_f_b] >= prev_val:        
             prev_val = librosa.util.normalize(onset_env)[on_f_b]
             keep_beat_start = b
-            keep_beat_end = beats[i+2]
+            keep_beat_end = beats[i+1]
+            alert_start = i
 
     beat_start = librosa.frames_to_samples([keep_beat_start])[0]
     beat_end = librosa.frames_to_samples([keep_beat_end])[0]
 
-    print "beat start: ", beat_start
-    print "beat end: ", beat_end
-            
+          
     overlay_sample = blues_perc[beat_start:beat_end]
     
     # get beat samples
@@ -152,7 +141,8 @@ def feature_extract_blues(blues_track, sr, onset_threshold=0.7):
     # get extracted subsample - using VS pipeline
     rep_samples_audio, num_seg = extract.extract_sample(blues_harm, sr, 1)
     signal_sample = rep_samples_audio[0][0]
-    
+
+   
     return {'overlay': overlay_sample, 'beats': beat_samples, 'alert': signal_sample}
 
 ########################################

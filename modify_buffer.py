@@ -146,7 +146,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 
 	# level 0 - echo with delay
 	elif level == 0:
-		offset = int(gs.sr / 2.0)
+		offset = int(0.75 * gs.sr)
 		echo_amp_curve = param_dict['echo']
 		echo_amp = echo_amp_curve[nearest_bound]
 		delay_curve = param_dict['delay']
@@ -182,7 +182,7 @@ def modify_pop(level, param_dict, start, dur=2):
 	return True
 
 
-def modify_blues(level, param_dict, start):
+def modify_blues(level, param_dict, start, current_timesig):
 	def average_amplitude(sig):
 		return np.mean(np.abs(sig))
 
@@ -190,7 +190,9 @@ def modify_blues(level, param_dict, start):
 
 	start_time = time.time()
 
-	N = 4
+	mult = 2
+	c_time_sig = int(current_timesig)
+	N = mult * c_time_sig
 	beats = param_dict['beats']
 	nearest_beat = beats[np.where(beats >= start)][0:N]
 	
@@ -198,9 +200,9 @@ def modify_blues(level, param_dict, start):
 		# 4 beats, equal volume
 
 		if level == 0:
-			vol_fac = 1.5
+			vol_fac = 1.8
 		else:
-			vol_fac = 1.8		
+			vol_fac = 2.0		
 
 		r_sample = []
 		overlay = param_dict['overlay']
@@ -218,13 +220,26 @@ def modify_blues(level, param_dict, start):
 
 	else:
 		# issue sampled alert
-		alert = param_dict['alert']
-		beat_size = nearest_beat[1] - nearest_beat[0]
-		if len(alert) >= beat_size:
-			alert_samp = window(alert[:beat_size])
-		else:
-			alert_samp = np.concatenate((window(alert),np.zeros((beat_size - len(alert)))))
-		gs.audio_buffer[nearest_beat[0]:nearest_beat[1]] = alert_samp #+ gs.audio_buffer[nearest_beat[0]:nearest_beat[1]]
+		alert_samp = param_dict['alert']
+		# must be <= N
+		num_alert_beats = 1
+
+		while num_alert_beats > 0:
+			beat_size = nearest_beat[num_alert_beats] - nearest_beat[0]
+			if len(alert_samp) >= beat_size:
+				alert_samp = alert[:beat_size]
+				break
+			else:
+				num_alert_beats -= 1
+
+		# sample is either the size of largest possible beat or its entire size
+		gs.audio_buffer[nearest_beat[0]:nearest_beat[0] + len(alert_samp)] = alert_samp #+ gs.audio_buffer[nearest_beat[0]:nearest_beat[1]]
+
+		# taper surrounding edges
+		taper_buffer_edges(nearest_beat[0], nearest_beat[0] + len(alert_samp), 1.0)
+
+		print len(alert_samp)
+		print nearest_beat[0]
 
 	print "Blues modification ended.."
 	return True

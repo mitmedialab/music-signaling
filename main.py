@@ -125,7 +125,7 @@ def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, conne
                 elif current_genre == 'classical':
                     done_flag = mb.modify_classical(level, param_dict, start)
                 elif current_genre == 'blues':
-                    done_flag = mb.modify_blues(level, param_dict, start)
+                    done_flag = mb.modify_blues(level, param_dict, start, current_timesig)
                 elif current_genre == 'pop':
                     if not start_jukebox:
                         start_jukebox = True
@@ -318,7 +318,7 @@ if __name__ == "__main__":
     # preprocess
     if args.preprocess:
         print "Pre-processing.."
-        param_dict_list = pre.preprocess(track_names, genre_tags)
+        param_dict_list = pre.preprocess(track_names, genre_tags, time_sigs)
         np.array(param_dict_list).dump("prep.dat")
         print "Finished Pre-processing."
 
