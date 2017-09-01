@@ -14,9 +14,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.style as ms
 
-import IPython.display
-from IPython.display import Audio
-
 import librosa
 import librosa.display
 from scipy import signal

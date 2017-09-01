@@ -312,7 +312,6 @@ class InfiniteJukebox(object):
         info = []
 
         bytes_per_second = int(round(len(self.raw_audio) / self.duration))
-        print "BPS: ", bytes_per_second
 
         last_cluster = -1
         current_segment = -1

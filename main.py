@@ -24,6 +24,7 @@ import collections
 import global_settings as gs
 import pre_processing as pre
 import modify_buffer as mb
+import automatic_sort as AS
 
 # THREAD 1: Write audio from buffer to stream in chunks
 def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, finished_flag):
@@ -84,7 +85,7 @@ def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, finished
 
 
 # THREAD 2: Monitor socket for flags and call modifiers
-def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, connection, time_sigs, dur=4, buff_time=1, pop_buff_time=3, msg_length=5):
+def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, time_sigs, dur=4, buff_time=1, pop_buff_time=3, msg_length=5):
 
     # modification settings
     hop_size_bytes = 1024 * 4 # bytes
@@ -93,59 +94,61 @@ def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, conne
     start_jukebox = False
     msg = ''
 
-    while not finished_flag.isSet(): # test - replace with socket
+    while not finished_flag.isSet(): 
 
-        msg = connection.recv(msg_length)
-        header, level = msg.split(':')
+        if not gs.msg_q.empty():
+            msg = gs.msg_q.get()
+            if len(msg) == msg_length:
+                header, level = msg.split(':')
 
-        if header == 'end':
-            finished_flag.set()
+                if header == 'end':
+                    finished_flag.set()
 
-        elif header == 'msg':
-            if modify_flag.isSet():
-                
-                level = int(level)
+                elif header == 'msg':
+                    if modify_flag.isSet():
+                        
+                        level = int(level)
 
-                param_dict = param_dict_list[gs.song_index]
-                current_genre = genre_tags[gs.song_index]
-                current_timesig = time_sigs[gs.song_index]
+                        param_dict = param_dict_list[gs.song_index]
+                        current_genre = genre_tags[gs.song_index]
+                        current_timesig = time_sigs[gs.song_index]
 
-                print "Modification Signaled.."
-                if current_genre == 'pop':
-                    start = gs.ptr + (pop_buff_time * (hop_size_bytes * 16))
+                        print "Modification Signaled.."
+                        if current_genre == 'pop':
+                            start = gs.ptr + (pop_buff_time * (hop_size_bytes * 16))
+                        else:
+                            start = gs.ptr + (buff_time * (hop_size_bytes * 16))                
+
+                        if start + (dur * gs.sr) >= len(gs.audio_buffer):
+                            print "Not enough audio left to modify. Sleeping.."
+                            continue
+
+                        if current_genre == 'jazz':
+                            done_flag = mb.modify_jazz(level, param_dict, start)
+                        elif current_genre == 'classical':
+                            done_flag = mb.modify_classical(level, param_dict, start)
+                        elif current_genre == 'blues':
+                            done_flag = mb.modify_blues(level, param_dict, start, current_timesig)
+                        elif current_genre == 'pop':
+                            if not start_jukebox:
+                                start_jukebox = True
+                                t3 = threading.Thread(target=start_jukebox_process, args=(param_dict, start, current_timesig, ))
+                                t3.daemon = True
+                                t3.start()
+                            done_flag = mb.modify_pop(level, param_dict, start)
+                        else:
+                            raise NotImplementedError 
+
+                        count +=1
+                    else:
+                        # new song, reset
+                        start_jukebox = False
+                        count = 0
+
+                    # throw away messages lost on reset    
+                    msg = ""
                 else:
-                    start = gs.ptr + (buff_time * (hop_size_bytes * 16))                
-
-                if start + (dur * gs.sr) >= len(gs.audio_buffer):
-                    print "Not enough audio left to modify. Sleeping.."
-                    continue
-
-                if current_genre == 'jazz':
-                    done_flag = mb.modify_jazz(level, param_dict, start)
-                elif current_genre == 'classical':
-                    done_flag = mb.modify_classical(level, param_dict, start)
-                elif current_genre == 'blues':
-                    done_flag = mb.modify_blues(level, param_dict, start, current_timesig)
-                elif current_genre == 'pop':
-                    if not start_jukebox:
-                        start_jukebox = True
-                        t3 = threading.Thread(target=start_jukebox_process, args=(param_dict, start, current_timesig, ))
-                        t3.daemon = True
-                        t3.start()
-                    done_flag = mb.modify_pop(level, param_dict, start)
-                else:
-                    raise NotImplementedError 
-
-                count +=1
-            else:
-                # new song, reset
-                start_jukebox = False
-                count = 0
-
-            # throw away messages lost on reset    
-            msg = ""
-        else:
-            print "Received Unrecognized Header: ", header
+                    print "Received Unrecognized Header: ", header
 
     connection.close()
 
@@ -257,7 +260,7 @@ def start_jukebox_process(param_dict, start, current_timesig):
             beats_since_last_jump += 1
 
             # sleep only for non-jump beats
-            time.sleep(0.5)
+            time.sleep(0.35)
 
         if curr_beat['segment'] not in recent_segments:
             recent_segments.append(curr_beat['segment'])
@@ -303,12 +306,13 @@ if __name__ == "__main__":
 
     ifile = open('info.csv', 'rb')
     reader = csv.reader(ifile)
+
     for row in reader:
         track_names.append(source_file_path + row[0])
         genre_tags.append(row[1])
         time_sigs.append(row[2])
 
-    print "Information Read In: "
+    print "Metadata Read In: "
     print "----------------------"
     print track_names
     print genre_tags
@@ -318,8 +322,24 @@ if __name__ == "__main__":
     # preprocess
     if args.preprocess:
         print "Pre-processing.."
-        param_dict_list = pre.preprocess(track_names, genre_tags, time_sigs)
-        np.array(param_dict_list).dump("prep.dat")
+        # check for missing genre tags and time sigs
+        a = AS.Automatic_Sorting()
+        for i in range(len(track_names)):
+            genre_tags[i] = a.categorize_audio(track_names[i], genre_tags[i])
+
+        for i, ts in enumerate(time_sigs):
+            if ts == "":
+                time_sigs[i] = a.estimate_timesig(track_names[i])
+
+        print "Final Estimated Metadata: "
+        print "----------------------"
+        print track_names
+        print genre_tags
+        print time_sigs
+        print "----------------------"
+
+        # param_dict_list = pre.preprocess(track_names, genre_tags, time_sigs)
+        # np.array(param_dict_list).dump("prep.dat")
         print "Finished Pre-processing."
 
     # realtime playback and modification
@@ -335,11 +355,18 @@ if __name__ == "__main__":
         t1 = threading.Thread(target=stream_audio, args=(track_names,genre_tags,param_dict_list,modify_flag, finished_flag, ))
         t1.daemon = True
 
-        t2 = threading.Thread(target=modify_buffer, args=(param_dict_list, genre_tags,modify_flag, finished_flag,connection,time_sigs, ))
+        t2 = threading.Thread(target=modify_buffer, args=(param_dict_list, genre_tags,modify_flag, finished_flag,time_sigs, ))
         t2.daemon = True
 
         t1.start()
         t2.start()
+
+        msg_length=5
+
+        while not finished_flag.isSet():
+            msg = connection.recv(msg_length) # blocking
+            gs.msg_q.put(msg)
+            time.sleep(2)  # do not message more than once every 2 seconds sec
 
         t1.join()
         t2.join()

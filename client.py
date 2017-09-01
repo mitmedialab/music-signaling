@@ -22,7 +22,7 @@ class Client:
 		msg_length = self.clientsocket.send(header + ':' + str(0))
 		return msg_length		
 
-	def end(self):
+	def end_client(self):
 		self.clientsocket.close()
 
 

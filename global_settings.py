@@ -6,6 +6,7 @@
 # Author: Ishwarya Ananthabhotla
 #########################################
 
+import Queue
 
 def init():
 	global audio_buffer
@@ -18,4 +19,6 @@ def init():
 	global pop_alert
 	pop_alert = False
 	global pop_subtlety
+	global msg_q
+	msg_q = Queue.Queue()
 	print "Finished initializing."

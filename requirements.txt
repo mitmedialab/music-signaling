@@ -1,0 +1,10 @@
+#pip install -r requirements.txt
+librosa==0.5.0
+matplotlib==1.5.1
+numpy==1.12.1
+PyAudio==0.2.8
+pydub==0.16.6
+pygame==1.9.2b8
+scikit-learn==0.18.1
+requests==2.11.1
+scipy==0.19.0
