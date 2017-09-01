@@ -25,9 +25,9 @@ Python prototype of the music signaling pipeline
 1. Does it work on Windows/OS-X?
 
 # Bugs:
-1.If client connection error, we should abort instead of starting playback threads
-2.On close, each song should not load
-3.If modification sent when pop thread is done, it should be stored in queue, not dropped
+1. If client connection error, we should abort instead of starting playback threads
+2. On close, each song should not load
+3. If modification sent when pop thread is done, it should be stored in queue, not dropped
 
 
 ** Currently working on this.
