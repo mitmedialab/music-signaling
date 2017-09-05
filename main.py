@@ -15,11 +15,13 @@ import util
 import librosa
 import time
 import threading
+# import multiprocessing
 import os
 import argparse
 import csv
 import socket
 import collections
+import pickle
 
 import global_settings as gs
 import pre_processing as pre
@@ -40,7 +42,6 @@ def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, finished
     hop_size_bytes = 1024 * 4 # bytes
 
     for i, track in enumerate(track_names):
-        
         gs.audio_buffer, gs.sr = librosa.load(track)
         gs.audio_buffer, _ = librosa.effects.trim(gs.audio_buffer)
         gs.song_index = i
@@ -52,7 +53,7 @@ def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, finished
         print "New song loaded!"        
 
         # termination signal from other thread
-        while gs.ptr < len(gs.audio_buffer) and not finished_flag.isSet():
+        while gs.ptr < len(gs.audio_buffer) and not finished_flag.is_set():
 
             # convert to string
             out_data = gs.audio_buffer[gs.ptr: gs.ptr + (hop_size_bytes * 16)]
@@ -64,13 +65,14 @@ def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, finished
 
             print "ptr: ", gs.ptr
 
-        if not finished_flag.isSet():
+        if not finished_flag.is_set():
             # make modifier thread wait while we load new song
             modify_flag.clear()
             print "Loading new song.."
             time.sleep(1) # wait for buffer thread to reset
         else:
             print "Cleaning up and closing.."
+            break
 
             
     # stop stream
@@ -86,7 +88,6 @@ def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, finished
 
 # THREAD 2: Monitor socket for flags and call modifiers
 def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, time_sigs, dur=4, buff_time=1, pop_buff_time=3, msg_length=5):
-
     # modification settings
     hop_size_bytes = 1024 * 4 # bytes
     done_flag = False
@@ -94,10 +95,9 @@ def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, time_
     start_jukebox = False
     msg = ''
 
-    while not finished_flag.isSet(): 
-
-        if not gs.msg_q.empty():
-            msg = gs.msg_q.get()
+    while not finished_flag.is_set(): 
+        if len(gs.msg_q) > 0:
+            msg = gs.msg_q.pop()
             if len(msg) == msg_length:
                 header, level = msg.split(':')
 
@@ -105,7 +105,7 @@ def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, time_
                     finished_flag.set()
 
                 elif header == 'msg':
-                    if modify_flag.isSet():
+                    if modify_flag.is_set():
                         
                         level = int(level)
 
@@ -113,7 +113,7 @@ def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, time_
                         current_genre = genre_tags[gs.song_index]
                         current_timesig = time_sigs[gs.song_index]
 
-                        print "Modification Signaled.."
+                        
                         if current_genre == 'pop':
                             start = gs.ptr + (pop_buff_time * (hop_size_bytes * 16))
                         else:
@@ -124,10 +124,13 @@ def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, time_
                             continue
 
                         if current_genre == 'jazz':
+                            print "Modification Signaled.."
                             done_flag = mb.modify_jazz(level, param_dict, start)
                         elif current_genre == 'classical':
+                            print "Modification Signaled.."
                             done_flag = mb.modify_classical(level, param_dict, start)
                         elif current_genre == 'blues':
+                            print "Modification Signaled.."
                             done_flag = mb.modify_blues(level, param_dict, start, current_timesig)
                         elif current_genre == 'pop':
                             if not start_jukebox:
@@ -135,7 +138,16 @@ def modify_buffer(param_dict_list, genre_tags, modify_flag, finished_flag, time_
                                 t3 = threading.Thread(target=start_jukebox_process, args=(param_dict, start, current_timesig, ))
                                 t3.daemon = True
                                 t3.start()
+                                # t3 = multiprocessing.Process(target=start_jukebox_process, args=(param_dict, start, current_timesig, ))
+                                # t3.daemon = True
+                                # t3.start()
                             done_flag = mb.modify_pop(level, param_dict, start)
+                            # if t3.isAlive():
+                            #     print "Modification Signaled.."
+                            #     done_flag = mb.modify_pop(level, param_dict, start)
+                            # else:
+                            #     # if we finished modifier thread, just add any msgs back to right side of queue
+                            #     gs.msg_q.append(msg)
                         else:
                             raise NotImplementedError 
 
@@ -297,30 +309,32 @@ if __name__ == "__main__":
     # initialize global variables 
     gs.init()
 
-    # read tracks, genre tags, time signatures in from csv
-    track_names = []
-    genre_tags = []
-    time_sigs = []
 
-    source_file_path = 'tracks/'
-
-    ifile = open('info.csv', 'rb')
-    reader = csv.reader(ifile)
-
-    for row in reader:
-        track_names.append(source_file_path + row[0])
-        genre_tags.append(row[1])
-        time_sigs.append(row[2])
-
-    print "Metadata Read In: "
-    print "----------------------"
-    print track_names
-    print genre_tags
-    print time_sigs
-    print "----------------------"
 
     # preprocess
     if args.preprocess:
+        # read tracks, genre tags, time signatures in from csv
+        track_names = []
+        genre_tags = []
+        time_sigs = []
+
+        source_file_path = 'tracks/'
+
+        ifile = open('info.csv', 'rb')
+        reader = csv.reader(ifile)
+
+        for row in reader:
+            track_names.append(source_file_path + row[0])
+            genre_tags.append(row[1])
+            time_sigs.append(row[2])
+
+        print "Metadata Read In: "
+        print "----------------------"
+        print track_names
+        print genre_tags
+        print time_sigs
+        print "----------------------"
+
         print "Pre-processing.."
         # check for missing genre tags and time sigs
         a = AS.Automatic_Sorting()
@@ -338,20 +352,28 @@ if __name__ == "__main__":
         print time_sigs
         print "----------------------"
 
-        # param_dict_list = pre.preprocess(track_names, genre_tags, time_sigs)
-        # np.array(param_dict_list).dump("prep.dat")
+        param_dict_list = pre.preprocess(track_names, genre_tags, time_sigs)
+        np.array(param_dict_list).dump("prep.dat")
+
+        pickle.dump((track_names, genre_tags, time_sigs), open('meta.pkl', 'wb'))
         print "Finished Pre-processing."
 
     # realtime playback and modification
     if args.start:
         param_dict_list = np.load("prep.dat")
+        track_names, genre_tags, time_sigs = pickle.load(open('meta.pkl', 'rb'))
 
         # initialize server/ client
-        connection, socket = start_server()
+        try:
+            connection, socket = start_server()
+        except:
+            print "Could not connect. Aborting.."
+            sys.exit(0)
 
+        # old threading module
         modify_flag = threading.Event()
         finished_flag = threading.Event()
-
+        
         t1 = threading.Thread(target=stream_audio, args=(track_names,genre_tags,param_dict_list,modify_flag, finished_flag, ))
         t1.daemon = True
 
@@ -359,13 +381,27 @@ if __name__ == "__main__":
         t2.daemon = True
 
         t1.start()
+        time.sleep(5)
         t2.start()
+
+
+        # switching to multiprocessing module
+        # modify_flag = multiprocessing.Event()
+        # finished_flag = multiprocessing.Event()
+
+        # t1 = multiprocessing.Process(target=stream_audio, args=(track_names,genre_tags,param_dict_list,modify_flag, finished_flag, ))
+        # t1.daemon = True
+        # t2 = multiprocessing.Process(target=modify_buffer, args=(param_dict_list, genre_tags,modify_flag, finished_flag,time_sigs, ))
+        # t2.daemon = True
+
+        # t1.start()
+        # t2.start()
 
         msg_length=5
 
-        while not finished_flag.isSet():
+        while not finished_flag.is_set():
             msg = connection.recv(msg_length) # blocking
-            gs.msg_q.put(msg)
+            gs.msg_q.appendleft(msg)
             time.sleep(2)  # do not message more than once every 2 seconds sec
 
         t1.join()

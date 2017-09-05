@@ -13,7 +13,6 @@
 # M.search(None, '(BEFORE "01-Jan-2012")')
 # M.search(None, '(SINCE "01-Jan-2012" BEFORE "02-Jan-2012")')
 
-from gmail import Gmail
 import time
 import client
 from datetime import datetime

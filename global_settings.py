@@ -6,7 +6,7 @@
 # Author: Ishwarya Ananthabhotla
 #########################################
 
-import Queue
+from collections import deque
 
 def init():
 	global audio_buffer
@@ -20,5 +20,5 @@ def init():
 	pop_alert = False
 	global pop_subtlety
 	global msg_q
-	msg_q = Queue.Queue()
+	msg_q = deque()
 	print "Finished initializing."
