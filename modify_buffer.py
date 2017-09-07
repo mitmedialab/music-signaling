@@ -119,7 +119,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		tempo_curve = param_dict['tempo']
 		nearest_bound_in_frame = librosa.samples_to_frames([nearest_bound])[0]
 		tempo_factor = tempo_curve[nearest_bound_in_frame]
-
+		print 'tempo_factor', tempo_factor
 		# change dur to account for tempo factor
 		dur = int(np.ceil(dur * (tempo_factor + offset)))
 
@@ -144,17 +144,24 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 	# level 0 - echo with delay
 	elif level == 0:
 		offset = int(0.75 * gs.sr)
+		clip = gs.audio_buffer[nearest_bound : nearest_bound + (dur*gs.sr)]
+
 		echo_amp_curve = param_dict['echo']
-		echo_amp = echo_amp_curve[nearest_bound]
+		if echo_amp_curve != None:
+			echo_amp = echo_amp_curve[nearest_bound]
+		else:
+			echo_amp = 0.8
+		print 'echo factor', echo_amp
+
 		delay_curve = param_dict['delay']
 		nearest_bound_in_frame = librosa.samples_to_frames([nearest_bound])[0]
 		delay_in_secs = delay_curve[nearest_bound_in_frame]
+		print 'delay in secs', delay_in_secs
 		delay_in_samps = int(delay_in_secs * gs.sr)
-		print delay_in_samps
 		delay_in_samps += offset
-		print delay_in_samps
-		clip = gs.audio_buffer[nearest_bound : nearest_bound + (dur*gs.sr)]
-		gs.audio_buffer[nearest_bound + delay_in_samps: nearest_bound + delay_in_samps + (dur*gs.sr)] += ((0.8*echo_amp) * window(clip))
+		
+		# gs.audio_buffer[nearest_bound + delay_in_samps: nearest_bound + delay_in_samps + (dur*gs.sr)] += ((0.8*echo_amp) * window(clip))
+		gs.audio_buffer[nearest_bound + delay_in_samps: nearest_bound + delay_in_samps + (dur*gs.sr)] += ((echo_amp) * window(clip))
 
 	# level 2 - alert sample
 	else:

@@ -52,7 +52,7 @@ class Client_Email:
             # check for a new email
             if len(new_email_fetch[0].split()) - len(old_email_fetch[0].split()) > 0:
                 # signal
-                self.client_session.signal(1)
+                self.client_session.signal(0)
                 print "Found new mail!"
 
                 old_email_fetch = new_email_fetch

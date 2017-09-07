@@ -30,6 +30,9 @@ import os
 # remixatron
 import Remixatron as R
 
+# TEST
+import time
+
 def preprocess(track_names, genre_tags, time_sigs):
     param_dict_list = []
 
@@ -189,9 +192,12 @@ def echo_amplitude(amplitude, e_min=0.6, e_max=1.4):
     return np.array(echo_curve)
 
 # number of segments should be proportional to track length and relevant to genre
-def feature_extract_classical(classical_track, sr, num_segments=10, seg_thresh=2, smooth_coeff=811):
+def feature_extract_classical(classical_track, sr, low_proc=True, num_segments=10, seg_thresh=2, smooth_coeff=811):
     # SEGMENTATION
     # segments
+    start_time = time.time()
+    print 'start time: ', start_time
+
     mfcc = librosa.feature.mfcc(y=classical_track, sr=sr)
     bounds = librosa.segment.agglomerative(mfcc, num_segments)
     sample_bounds = librosa.frames_to_samples(bounds)
@@ -209,21 +215,29 @@ def feature_extract_classical(classical_track, sr, num_segments=10, seg_thresh=2
     onset_env = librosa.onset.onset_strength(classical_track, sr=sr)
     dtempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr,
                             aggregate=None)
-    tempo_curve = moving_average_filter(dtempo, smooth_coeff)
-    normalized_tempo_curve = normalized_tempo(tempo_curve)
+
+    if not low_proc:
+        tempo_curve = moving_average_filter(dtempo, smooth_coeff)
+        normalized_tempo_curve = normalized_tempo(tempo_curve)
     
-    # ECHO
-    # echo amplitude
-    lpf_amplitude = moving_average_filter(np.abs(classical_track), sr) # 1 sec - long filter
-    echo_ampl_curve = echo_amplitude(lpf_amplitude)
-    
-    # delay curve
-    delay_curve = delay(tempo_curve)
-    
+        # ECHO
+        # echo amplitude
+        lpf_amplitude = moving_average_filter(np.abs(classical_track), sr) # 1 sec - long filter
+        echo_ampl_curve = echo_amplitude(lpf_amplitude)
+        
+        # delay curve
+        delay_curve = delay(tempo_curve)
+    else:
+        normalized_tempo_curve = normalized_tempo(dtempo)
+        echo_ampl_curve = None
+        delay_curve = delay(dtempo)
+        
     # EXTRACTED SAMPLE
     classical_harm = librosa.effects.harmonic(classical_track)
     rep_samples_audio, num_seg = extract.extract_sample(classical_harm, sr, 1)
     signal_sample = rep_samples_audio[0][0]
+
+    print 'end time: ', time.time() - start_time
     
     return {'bounds':sample_intervals, 'tempo': normalized_tempo_curve, 'echo':echo_ampl_curve, 'delay': delay_curve, 'alert':signal_sample}
 

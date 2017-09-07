@@ -104,4 +104,4 @@ ENV/
 *.dat
 *.wav
 *.mp3
-
+*.pkl

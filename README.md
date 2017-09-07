@@ -10,6 +10,7 @@ Python prototype of the music signaling pipeline
 6. Implement time signature detector in Automatic_Sorting using AES paper
 7. Jazz key detection for shifting
 8. Maintain jukebox ptr rate algorithmically based on number of jump vs/ non-jump beats
+9. Phase vocoder for classical is kind of crap, better implementation?
 
 # Minor Technical Improvements
 1. Final UI for system use (text file / folder)
@@ -26,7 +27,6 @@ Python prototype of the music signaling pipeline
 
 # Bugs:
 3. If modification sent when pop thread is done, it should be stored in queue, not dropped
-4. Classical pre-processing taking way too long -- turn curve computation features off
 
 
 ** Currently working on this.
