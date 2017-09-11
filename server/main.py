@@ -88,7 +88,7 @@ def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, end_stre
 
 
 # THREAD 2: Monitor socket for flags and call modifiers
-def modify_buffer(param_dict, current_genre, current_timesig, level, new_song, dur=4, buff_time=1, pop_buff_time=3, msg_length=5):
+def modify_buffer(param_dict, current_genre, current_timesig, level, new_song, dur=4, buff_time=2, pop_buff_time=3, msg_length=5):
     # modification settings
     hop_size_bytes = 1024 * 4 # bytes
     done_flag = False

@@ -119,7 +119,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		tempo_curve = param_dict['tempo']
 		nearest_bound_in_frame = librosa.samples_to_frames([nearest_bound])[0]
 		tempo_factor = tempo_curve[nearest_bound_in_frame]
-		print 'tempo_factor', tempo_factor
+
 		# change dur to account for tempo factor
 		dur = int(np.ceil(dur * (tempo_factor + offset)))
 
@@ -151,12 +151,10 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 			echo_amp = echo_amp_curve[nearest_bound]
 		else:
 			echo_amp = 0.8
-		print 'echo factor', echo_amp
 
 		delay_curve = param_dict['delay']
 		nearest_bound_in_frame = librosa.samples_to_frames([nearest_bound])[0]
 		delay_in_secs = delay_curve[nearest_bound_in_frame]
-		print 'delay in secs', delay_in_secs
 		delay_in_samps = int(delay_in_secs * gs.sr)
 		delay_in_samps += offset
 		
