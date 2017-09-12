@@ -8,6 +8,8 @@
 
 # Check every N minutes for new email. If present, send a signal(1) to server
 
+# template for all individual customizations
+
 # Other filters
 # M.search(None, '(SINCE "01-Jan-2012")')
 # M.search(None, '(BEFORE "01-Jan-2012")')
@@ -21,15 +23,18 @@ import pytz
 import imaplib
 import oauth2 as o
 import pickle
+import argparse
 
 class Client_Email:
-    def __init__(self, email_id):
+    def __init__(self, email_id, log=True):
         # self.session = imaplib.IMAP4_SSL('imap.gmail.com', '993')
         self.finished_flag = threading.Event()
         self.t1 = None
         self.token_expire_time = None
         self.email_id = email_id
         self.client_session = None
+        self.log_file = open('soundsignal_log.txt', 'ab')
+        self.log_file.write('START ' + str(datetime.now()) + '\n')
 
     def start_server_connection(self):
         self.client_session = client.Client()
@@ -65,13 +70,11 @@ class Client_Email:
         while not self.finished_flag.isSet():
             # check access token expiry
             if datetime.now() > self.token_expire_time - timedelta(minutes=10):
-                print "I am refreshing: "
-                print datetime.now()
+                print "Refreshing Access.."
                 print self.token_expire_time - timedelta(minutes=10)
                 self.start_gmail_connection(refresh=True)
 
-            print "Checking now.."
-            print "Time: ", datetime.now()
+            print "Checking now at: ", datetime.now()
             self.session.select("inbox")
             # store the email ids from each query and compare against the next
             response, new_email_fetch = self.session.search(None, '(SINCE "' + datestr + '")')
@@ -91,6 +94,7 @@ class Client_Email:
                             print "Can't send signal, quitting.."
                             return
                     print "Found new mail!"
+                    self.log_file.write('NOTIF ' + str(datetime.now()) + '\n')
                 else:
                     print "No connection to client."
 
@@ -107,20 +111,51 @@ class Client_Email:
     def end_monitoring(self):
         self.finished_flag.set()
         self.t1.kill = True
-        self.t1.join()
+        # self.t1.join()
 
     def end_gmail(self):
         self.session.logout()
         self.client_session.end_server()
         self.client_session.end_client()
+        self.log_file.write('STOP ' + str(datetime.now()) + '\n')
+        self.log_file.close()
 
 
 if __name__ == "__main__":
-    e = Client_Email('soundsignaling@gmail.com')
-    e.start_server_connection()
-    e.start_gmail_connection()
-    e.start_monitoring()
-    time.sleep(5 * 60)
-    print "Done."
-    e.end_monitoring()
-    e.end_gmail()
+    # sample parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-start', action='store_true')
+    parser.add_argument('-mins', action="store", dest="mins", type=int)
+    args = parser.parse_args()
+
+    
+
+    if args.start and args.mins > 0:
+        # start all connections by default
+        e = Client_Email('ishwaryaanant@gmail.com')    
+        e.start_server_connection()
+        e.start_gmail_connection()
+
+        e.start_monitoring()
+        time.sleep(args.mins * 60)
+        print "Monitored for " + str(args.mins) + " mins. Finished."
+        e.end_monitoring()
+        e.end_gmail()
+    elif args.start:
+        # start all connections by default
+        e = Client_Email('ishwaryaanant@gmail.com')    
+        e.start_server_connection()
+        e.start_gmail_connection()
+
+        
+        e.start_monitoring()
+        while True:
+            try:
+                time.sleep(1)
+            except KeyboardInterrupt:
+                print "Ending monitoring, shutting down."
+                e.end_monitoring()
+                e.end_gmail()
+                break
+    else:
+        print "Incorrect arguments. Specify start mins, or use python command line."
