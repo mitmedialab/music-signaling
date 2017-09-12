@@ -9,17 +9,26 @@ Python prototype of the music signaling pipeline
 4. Load your personal music collection into the folder labeled 'tracks/' (mp3 or wav, others not tested.)
 
 (You need to run these steps every time you'd like to use the system.)
+
 5. Change into the 'server' directory, and in the 'info.csv' file, enter the metadata of the tracks you'd like to listen to. Follow the instructions.
 
 6. Start the server: 
-	>> python main.py -preprocess -start
+	$ python main.py -preprocess -start
+	
 	OR
-	>> python main.py -start
+	
+	$ python main.py -start
+	
 	if the metadata hasn't changed since the last time.
+	
 7. Start the client with your name(in a separate terminal):
-	>> python run_client_NAME.py -start -mins 5
+
+	$ python run_client_NAME.py -start -mins 5
+	
 	to run for 5 minutes, OR
-	>> python run_client_NAME.py -start
+	
+	$ python run_client_NAME.py -start
+	
 	to run until your playlist is played through. You can always CTRL+C to terminate early.
 
 
