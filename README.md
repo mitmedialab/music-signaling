@@ -10,6 +10,7 @@ Python prototype of the music signaling pipeline
 
 (You need to run these steps every time you'd like to use the system.)
 5. Change into the 'server' directory, and in the 'info.csv' file, enter the metadata of the tracks you'd like to listen to. Follow the instructions.
+
 6. Start the server: 
 	>> python main.py -preprocess -start
 	OR
