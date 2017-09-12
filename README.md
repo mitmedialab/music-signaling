@@ -1,7 +1,7 @@
-## music-signaling
+# music-signaling
 Python prototype of the music signaling pipeline
 
-# How to run this platform:
+## How to run this platform:
 (You only need to run these steps once.)
 1. Clone this repository to your local machine.
 2. Install dependencies by running: 'pip install -r requirements.txt' in the music-signaling folder. You may wish to run this in a virtual env.
@@ -34,9 +34,9 @@ Python prototype of the music signaling pipeline
 
 
 
+# TODO
 
-
-# Minor Algorithmic Improvements
+## Minor Algorithmic Improvements
 1. Bit of popping on tail end of level 1 classical music (time stretching)
 2. Make sure we pick up rhythmic element instead of harmonic in blues overlay
 3. More careful jump rules on jumping for pop
@@ -47,12 +47,12 @@ Python prototype of the music signaling pipeline
 8. Maintain jukebox ptr rate algorithmically based on number of jump vs/ non-jump beats
 9. Phase vocoder for classical is kind of crap, better implementation?
 
-# Minor Technical Improvements
+## Minor Technical Improvements
 1. Final UI for system use (text file / folder)
 2. Operate on Stereo data instead of mono
 3. Pause music option, without restarting play sequence
 
-# Major Developments:
+## Major Developments:
 
 1. (TEST) Dependency installation scripts
 
