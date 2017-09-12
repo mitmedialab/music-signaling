@@ -56,10 +56,10 @@ Python prototype of the music signaling pipeline
 
 1. (TEST) Dependency installation scripts
 
-# QA:
+## QA:
 1. Does it work on Windows/OS-X?
 
-# Bugs:
+## Bugs:
 3. If modification sent when pop thread is done, it should be stored in queue, not dropped
 
 
