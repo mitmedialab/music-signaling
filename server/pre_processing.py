@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import matplotlib.style as ms
 
 # and IPython.display for audio output
-import IPython.display
-from IPython.display import Audio
+# import IPython.display
+# from IPython.display import Audio
 
 # Librosa for audio
 import librosa
