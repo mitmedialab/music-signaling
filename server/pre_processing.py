@@ -195,8 +195,6 @@ def echo_amplitude(amplitude, e_min=0.6, e_max=1.4):
 def feature_extract_classical(classical_track, sr, low_proc=True, num_segments=10, seg_thresh=2, smooth_coeff=811):
     # SEGMENTATION
     # segments
-    start_time = time.time()
-    print 'start time: ', start_time
 
     mfcc = librosa.feature.mfcc(y=classical_track, sr=sr)
     bounds = librosa.segment.agglomerative(mfcc, num_segments)
@@ -236,8 +234,6 @@ def feature_extract_classical(classical_track, sr, low_proc=True, num_segments=1
     classical_harm = librosa.effects.harmonic(classical_track)
     rep_samples_audio, num_seg = extract.extract_sample(classical_harm, sr, 1)
     signal_sample = rep_samples_audio[0][0]
-
-    print 'end time: ', time.time() - start_time
     
     return {'bounds':sample_intervals, 'tempo': normalized_tempo_curve, 'echo':echo_ampl_curve, 'delay': delay_curve, 'alert':signal_sample}
 
