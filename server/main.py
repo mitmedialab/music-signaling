@@ -353,7 +353,7 @@ if __name__ == "__main__":
         # terminate monitor thread if stream thread finishes
         while t1.is_alive():
             try:
-                msg = connection.recv(msg_length) # blocking
+                msg = connection.recv(msg_length) 
                 gs.msg_q.appendleft(msg)
             except:
                 pass

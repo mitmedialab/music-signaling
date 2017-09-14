@@ -60,7 +60,7 @@ class Client_Email:
         self.session.select('inbox')       
 
     # check for new messages once every 5 minutes, and signal if present
-    def check_and_signal(self, finished_flag, wait_mins=1):
+    def check_and_signal(self, finished_flag, wait_mins):
         today = datetime.now(pytz.utc)
         datestr = str(today.day) + '-' + today.strftime('%b') + '-' + str(today.year)
         
@@ -96,15 +96,15 @@ class Client_Email:
                     print "Found new mail!"
                     self.log_file.write('NOTIF ' + str(datetime.now()) + '\n')
                 else:
-                    print "No connection to client."
+                    print "No connection to server."
 
                 old_email_fetch = new_email_fetch
 
             # sleep
             time.sleep(wait_mins * 60)
 
-    def start_monitoring(self):
-        self.t1 = threading.Thread(target=self.check_and_signal, args=(self.finished_flag, ))
+    def start_monitoring(self, wait_mins=1):
+        self.t1 = threading.Thread(target=self.check_and_signal, args=(self.finished_flag, wait_mins, ))
         self.t1.daemon = True
         self.t1.start()
 
@@ -124,38 +124,46 @@ class Client_Email:
 if __name__ == "__main__":
     # sample parser
     parser = argparse.ArgumentParser()
+    parser.add_argument('-id', action="store", dest="id", type=str)
     parser.add_argument('-start', action='store_true')
     parser.add_argument('-mins', action="store", dest="mins", type=int)
+    parser.add_argument('-check_freq', action="store", dest="check", type=int, default=1)
     args = parser.parse_args()
 
-    
+    if args.id != None and args.start != None:
+        if args.mins > 0:
+            # start all connections by default
+            e = Client_Email(args.id)    
+            e.start_server_connection()
+            e.start_gmail_connection()
 
-    if args.start and args.mins > 0:
-        # start all connections by default
-        e = Client_Email('ishwaryaanant@gmail.com')    
-        e.start_server_connection()
-        e.start_gmail_connection()
+            e.start_monitoring(wait_mins=args.check)
+            i = 0
+            while i < args.mins:
+                try:
+                    time.sleep(i * 60)
+                    i += 1
+                except KeyboardInterrupt:
+                    break
 
-        e.start_monitoring()
-        time.sleep(args.mins * 60)
-        print "Monitored for " + str(args.mins) + " mins. Finished."
-        e.end_monitoring()
-        e.end_gmail()
-    elif args.start:
-        # start all connections by default
-        e = Client_Email('ishwaryaanant@gmail.com')    
-        e.start_server_connection()
-        e.start_gmail_connection()
+            print "Monitored for " + str(args.mins) + " mins. Finished."
+            e.end_monitoring()
+            e.end_gmail()
+        else:
+            # start all connections by default
+            e = Client_Email(args.id)    
+            e.start_server_connection()
+            e.start_gmail_connection()
 
-        
-        e.start_monitoring()
-        while True:
-            try:
-                time.sleep(1)
-            except KeyboardInterrupt:
-                print "Ending monitoring, shutting down."
-                e.end_monitoring()
-                e.end_gmail()
-                break
+            
+            e.start_monitoring(wait_mins=args.check)
+            while True:
+                try:
+                    time.sleep(1)
+                except KeyboardInterrupt:
+                    print "Ending monitoring, shutting down."
+                    e.end_monitoring()
+                    e.end_gmail()
+                    break
     else:
         print "Incorrect arguments. Specify start mins, or use python command line."
