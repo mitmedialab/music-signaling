@@ -5,21 +5,25 @@ Python prototype of the music signaling pipeline
 ### You only need to run these steps once.
 1. Clone this repository to your local machine.
 2. (You may wish to install all dependencies in a virtual-env.) You will need portaudio if you don't have it already: 
+
 ::
 
 	brew install portaudio	
 or 
+
 ::
 
 	sudo apt-get install portaudio19-dev
     
 3. Install dependencies by running: 
+
 ::
 
 	cd music-signaling/
 	pip install -r requirements.txt
 	
 3. Grant this application permission to access your email by running these commands and following the instructions: 
+
 ::
 
 	cd client/
@@ -30,10 +34,12 @@ or
 ### You need to run these steps every time you'd like to use the system.
 
 5. Tell the system what tracks you'd like to listen to:
+
 ::
 
 	cd server/
 in the 'info.csv' file, enter the metadata of the tracks in the following format:
+
 ::
 
 	example.mp3,classical,4
@@ -43,6 +49,7 @@ which is the filename, genre, and time signature. Use the genre key to help you 
 	example.mp3,,
 
 6. Start the server: 
+
 ::
 
 	$ python main.py -preprocess -start
@@ -54,6 +61,7 @@ OR
 if the metadata hasn't changed since the last time.
 	
 7. Start the client with your name (in a separate terminal):
+
 ::
 
 	$ python run_client_NAME.py -start -mins 5
