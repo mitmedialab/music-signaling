@@ -11,7 +11,6 @@ import pygame
 import wave
 import sys
 import numpy as np
-import util
 import librosa
 import time
 import threading

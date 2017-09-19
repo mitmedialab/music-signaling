@@ -4,7 +4,8 @@ Python prototype of the music signaling pipeline
 ## How to run this platform:
 (You only need to run these steps once.)
 1. Clone this repository to your local machine.
-2. Install dependencies by running: 'sudo apt-get install portaudio19-dev; pip install -r requirements.txt' in the music-signaling folder. You may wish to run this in a virtual env.
+2. (You may wish to install all dependencies in a virtual-env.) You will need portaudio if you don't have it already: brew install portaudio; or sudo apt-get install portaudio19-dev
+2. Install dependencies by running: pip install -r requirements.txt in the music-signaling folder. 
 3. Grant this application permission to access your email: change into the 'client' directory, and run setup_client.py. Follow the instructions.
 4. Load your personal music collection into the folder labeled 'tracks/' (mp3 or wav, others not tested.)
 
@@ -12,7 +13,13 @@ Python prototype of the music signaling pipeline
 
 5. Change into the 'server' directory, and in the 'info.csv' file, enter the metadata of the tracks you'd like to listen to in the following format:
 
-	[FILL IN INSTRUCTIONS]
+	example.mp3,classical,4
+
+	[filename, genre, timesig]
+
+	Use the genre key to help you make your best guess, but you can also leave the parameters blank like this:
+
+	example.mp3,,
 
 6. Start the server: 
 	$ python main.py -preprocess -start
@@ -32,8 +39,6 @@ Python prototype of the music signaling pipeline
 	$ python run_client_NAME.py -start
 	
 	to run until your playlist is played through. You can always CTRL+C to terminate early.
-
-
 
 
 # TODO
