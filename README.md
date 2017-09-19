@@ -2,46 +2,70 @@
 Python prototype of the music signaling pipeline
 
 ## How to run this platform:
-(You only need to run these steps once.)
+### You only need to run these steps once.
 1. Clone this repository to your local machine.
-2. (You may wish to install all dependencies in a virtual-env.) You will need portaudio if you don't have it already: brew install portaudio; or sudo apt-get install portaudio19-dev
-2. Install dependencies by running: pip install -r requirements.txt in the music-signaling folder. 
-3. Grant this application permission to access your email: change into the 'client' directory, and run setup_client.py. Follow the instructions.
+2. (You may wish to install all dependencies in a virtual-env.) You will need portaudio if you don't have it already: 
+::
+
+	brew install portaudio	
+or 
+::
+
+	sudo apt-get install portaudio19-dev
+    
+3. Install dependencies by running: 
+::
+
+	cd music-signaling/
+	pip install -r requirements.txt
+	
+3. Grant this application permission to access your email by running these commands and following the instructions: 
+::
+
+	cd client/
+	python setup_client.py
+	
 4. Load your personal music collection into the folder labeled 'tracks/' (mp3 or wav, others not tested.)
 
-(You need to run these steps every time you'd like to use the system.)
+### You need to run these steps every time you'd like to use the system.
 
-5. Change into the 'server' directory, and in the 'info.csv' file, enter the metadata of the tracks you'd like to listen to in the following format:
+5. Tell the system what tracks you'd like to listen to:
+::
+
+	cd server/
+in the 'info.csv' file, enter the metadata of the tracks in the following format:
+::
 
 	example.mp3,classical,4
 
-	[filename, genre, timesig]
-
-	Use the genre key to help you make your best guess, but you can also leave the parameters blank like this:
+which is the filename, genre, and time signature. Use the genre key to help you make your best guess, but you can also leave the parameters blank like this:
 
 	example.mp3,,
 
 6. Start the server: 
+::
+
 	$ python main.py -preprocess -start
 	
-	OR
+OR
 	
 	$ python main.py -start
 	
-	if the metadata hasn't changed since the last time.
+if the metadata hasn't changed since the last time.
 	
-7. Start the client with your name(in a separate terminal):
+7. Start the client with your name (in a separate terminal):
+::
 
 	$ python run_client_NAME.py -start -mins 5
 	
-	to run for 5 minutes, OR
+to run for 5 minutes, OR
 	
 	$ python run_client_NAME.py -start
 	
-	to run until your playlist is played through. You can always CTRL+C to terminate early.
+to run until your playlist is played through. You can always CTRL+C to terminate early.
 
 
-# TODO
+# Development TODOs
 
 ## Minor Algorithmic Improvements
 1. Bit of popping on tail end of level 1 classical music (time stretching)
