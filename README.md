@@ -1,7 +1,7 @@
 # music-signaling
 Python prototype of the music signaling pipeline
 
-## How to run this platform:
+## How to run this platform (Tested for Ubuntu/ OS X):
 ### You only need to run these steps once.
 1. Clone this repository to your local machine.
 2. (You may wish to install all dependencies in a virtual-env.) You will need portaudio if you don't have it already:
@@ -102,21 +102,12 @@ to run until your playlist is played through. You can always CTRL+C to terminate
 
 ## Minor Technical Improvements
 1. Final UI for system use (text file / folder)
-2. Operate on Stereo data instead of mono
+2. Switch back to Stereo
 3. Pause music option, without restarting play sequence
-
-## Major Developments:
-
-1. (TEST) Dependency installation scripts
-
-## QA:
-1. Does it work on Windows/OS-X?
 
 ## Bugs:
 3. If modification sent when pop thread is done, it should be stored in queue, not dropped
 
-
-** Currently working on this.
 
 
 
