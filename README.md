@@ -4,7 +4,7 @@ Python prototype of the music signaling pipeline
 ## How to run this platform:
 ### You only need to run these steps once.
 1. Clone this repository to your local machine.
-2. (You may wish to install all dependencies in a virtual-env.) You will need portaudio if you don't have it already:: 
+2. (You may wish to install all dependencies in a virtual-env.) You will need portaudio if you don't have it already:
 ```	
 brew install portaudio	
 ```
@@ -41,13 +41,21 @@ cd server/
 in the 'info.csv' file, enter the metadata of the tracks in the following format:
 
 ```
-example.mp3,classical,4
+example1.mp3,classical,4
+example2.mp3,pop,3
 ```
-
-which is the filename, genre, and time signature. Use the genre key to help you make your best guess, but you can also leave the parameters blank like this:
+which is the filename, genre, and time signature. You can use any of the following genre key words:
 
 ```
-example.mp3,,
+'classical','rhythmless-instrumental', 'choir', 'avant-garde', 'soundtrack', 'pop', 'country', 'folk', 'latin', 'gospel', 
+'blues','rock', 'hip-hop', 'R&B', 'soul', 'strong-rhythmic', 'disco', 'rap', 'jazz','rhythmic-instrumental', 'electronic', 'easy-listening'
+```
+or you can also leave the parameters blank like this:
+
+```
+example1.mp3,,
+example2.mp3,pop,
+example3.mp3,,3
 ```
 
 6. Start the server: 
