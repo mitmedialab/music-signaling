@@ -1,5 +1,9 @@
 # music-signaling
-Python prototype of the music signaling pipeline
+This a demo version of the SoundSignaling platform.  This project is designed to understand the communicative power of audio -- since so many of us listen to music for hours everyday, what if we could manipulate that music to convey information to us?
+
+In this version, a client example is provided that will monitor your gmail inbox -- when a new email comes in, tracks you have uploaded and that you are listening to will be modified in a stylistically relevant way to let you know.  Follow the steps below to get started.
+
+Yes, it is a clunky project using Python for audio processing and only a CLI.  That's why it's a prototype, be gentle!
 
 ## How to run this platform (Tested for Ubuntu/ OS X):
 ### You only need to run these steps once.
