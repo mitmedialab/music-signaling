@@ -1,5 +1,5 @@
 # music-signaling
-This a demo version of the SoundSignaling platform.  This project is designed to understand the communicative power of audio -- since so many of us listen to music for hours everyday, what if we could manipulate that music to convey information to us?
+This a demo version of the SoundSignaling platform.  This project is designed to explore the communicative power of audio -- since so many of us listen to music for hours everyday, what if we could manipulate that music to convey information to us?
 
 In this version, a client example is provided that will monitor your gmail inbox -- when a new email comes in, tracks you have uploaded and that you are listening to will be modified in a stylistically relevant way to let you know.  Follow the steps below to get started.
 
