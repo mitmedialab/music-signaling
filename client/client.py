@@ -18,16 +18,11 @@ class Client:
 		msg_length = self.clientsocket.send(header + ':' + str(level))
 		return msg_length
 
-	def check_alive(self):
-		msg_length = self.clientsocket.send('try:0')
-		return msg_length
-
 	def end_server(self, header='end'):
 		try:
 			msg_length = self.clientsocket.send(header + ':' + str(0))
 		except socket.error:
-			print "Server already closed."
-		return msg_length		
+			print "Server already closed."		
 
 	def end_client(self):
 		self.clientsocket.close()

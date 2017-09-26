@@ -146,7 +146,7 @@ if __name__ == "__main__":
                 except KeyboardInterrupt:
                     break
 
-            print "Monitored for " + str(args.mins) + " mins. Finished."
+            print "Monitored for " + str(i) + " mins. Finished."
             e.end_monitoring()
             e.end_gmail()
         else:
