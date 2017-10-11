@@ -166,4 +166,4 @@ if __name__ == "__main__":
                     e.end_gmail()
                     break
     else:
-        print "Incorrect arguments. Specify start mins, or use python command line."
+        print "Incorrect arguments. Specify id, start, and mins, or use python command line."

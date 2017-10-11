@@ -5,6 +5,8 @@ In this version, a client example is provided that will monitor your gmail inbox
 
 Yes, it is a clunky project using Python for audio processing and only a CLI.  That's why it's a prototype, be gentle!
 
+# DEMO 1
+
 ## How to run this platform (Tested for Ubuntu/ OS X):
 ### You only need to run these steps once.
 1. Clone this repository to your local machine.
@@ -79,16 +81,44 @@ if the metadata hasn't changed since the last time.
 7. Start the client with your name (in a separate terminal):
 
 ```
-$ python run_client_NAME.py -start -mins 5
+$ python run_client_NAME.py -id xxx@gmail.com -start -mins 5
 ```
 	
 to run for 5 minutes, OR
 
 ```
-$ python run_client_NAME.py -start
+$ python run_client_NAME.py -id xxx@gmail.com -start
 ```
 	
 to run until your playlist is played through. You can always CTRL+C to terminate early.
+
+
+# DEMO 2
+
+Alternatively, instead of running step 7, you can do a realtime demo. When the server displays 'Please begin client application', do the following:
+
+```
+$ cd client/
+$ python
+>>> import client
+>>> c = client.Client()
+```
+after the tracks begin to play, feel free to try different signaling levels, at least a few seconds apart so people can listen to the modifications:
+
+```
+>>> c.signal(0)
+>>> c.signal(1)
+>>> c.signal(2)
+```
+when finished:
+```
+>>> c.end_server()
+>>> c.end_client()
+>>> exit()
+```
+
+
+
 
 
 # Development TODOs
