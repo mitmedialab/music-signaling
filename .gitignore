@@ -105,3 +105,4 @@ ENV/
 *.wav
 *.mp3
 *.pkl
+!extract.pyc
