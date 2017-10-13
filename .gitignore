@@ -106,3 +106,4 @@ ENV/
 *.mp3
 *.pkl
 !extract.pyc
+!fmp.pyc
