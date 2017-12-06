@@ -129,7 +129,7 @@ def feature_extract_blues(blues_track, sr, current_timesig, onset_threshold=0.7)
         if librosa.util.normalize(onset_env)[on_f_b] >= prev_val:        
             prev_val = librosa.util.normalize(onset_env)[on_f_b]
             keep_beat_start = b
-            keep_beat_end = beats[i+1]
+            keep_beat_end = beats[i+3]
             alert_start = i
 
     beat_start = librosa.frames_to_samples([keep_beat_start])[0]
@@ -144,6 +144,9 @@ def feature_extract_blues(blues_track, sr, current_timesig, onset_threshold=0.7)
     # get extracted subsample - using VS pipeline
     rep_samples_audio, num_seg = extract.extract_sample(blues_harm, sr, 1)
     signal_sample = rep_samples_audio[0][0]
+
+    print overlay_sample
+    librosa.output.write_wav("overlay_sample.wav", overlay_sample, sr)
 
    
     return {'overlay': overlay_sample, 'beats': beat_samples, 'alert': signal_sample}

@@ -99,6 +99,10 @@ def modify_jazz(level, param_dict, start, dur=4, segment=False):
 	print "Jazz modification completed.."
 	return True
 
+def match_target_amplitude(sound, target_dBFS):
+    change_in_dBFS = target_dBFS - sound.dBFS
+    return sound.apply_gain(change_in_dBFS)
+
 
 def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 	print "Classical modification begun.."
@@ -124,7 +128,18 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		dur = int(np.ceil(dur * (tempo_factor + offset)))
 
 		clip = gs.audio_buffer[nearest_bound : nearest_bound + (dur*gs.sr)]
+
 		shrink = librosa.effects.time_stretch(clip, offset + tempo_factor)
+
+
+		# normalizing CRAP. 
+		librosa.output.write_wav("clip.wav", clip, gs.sr)
+		as_clip = pydub.AudioSegment.from_wav("clip.wav")
+		as_amp = as_clip.dBFS
+		librosa.output.write_wav("shrink.wav", shrink, gs.sr)
+		shrink = match_target_amplitude(pydub.AudioSegment.from_wav("shrink.wav"), as_amp)
+		shrink.export("new_shrink.wav", format="wav")
+		shrink, sr = librosa.load("new_shrink.wav")
 		
 		compensate_factor = 1.2
 
@@ -134,7 +149,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 		
 		gs.audio_buffer[-1 * (len(clip) - len(shrink)):] = 0
 
-		taper_buffer_edges(nearest_bound, nearest_bound + len(shrink), 1.0)
+		# taper_buffer_edges(nearest_bound, nearest_bound + len(shrink), 1.0)
 		
 
 		# if stretch instead of shrink		
@@ -204,7 +219,7 @@ def modify_blues(level, param_dict, start, current_timesig):
 		if level == 0:
 			vol_fac = 1.8
 		else:
-			vol_fac = 2.0		
+			vol_fac = 3.2		
 
 		r_sample = []
 		overlay = param_dict['overlay']
@@ -229,7 +244,7 @@ def modify_blues(level, param_dict, start, current_timesig):
 		while num_alert_beats > 0:
 			beat_size = nearest_beat[num_alert_beats] - nearest_beat[0]
 			if len(alert_samp) >= beat_size:
-				alert_samp = alert[:beat_size]
+				alert_samp = alert_samp[:beat_size]
 				break
 			else:
 				num_alert_beats -= 1

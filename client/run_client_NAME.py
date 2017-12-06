@@ -127,7 +127,7 @@ if __name__ == "__main__":
     parser.add_argument('-id', action="store", dest="id", type=str)
     parser.add_argument('-start', action='store_true')
     parser.add_argument('-mins', action="store", dest="mins", type=int)
-    parser.add_argument('-check_freq', action="store", dest="check", type=int, default=1)
+    parser.add_argument('-check_freq', action="store", dest="check", type=float, default=0.5)
     args = parser.parse_args()
 
     if args.id != None and args.start != None:
