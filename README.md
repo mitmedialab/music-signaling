@@ -10,7 +10,7 @@ Yes, it is a clunky project using Python for audio processing and only a CLI.  T
 ## How to run this platform (Tested for Ubuntu/ OS X):
 ### You only need to run these steps once.
 1. Clone this repository to your local machine.
-2. (You may wish to install all dependencies in a virtual-env.) You will need portaudio if you don't have it already:
+2. You will need portaudio if you don't have it already:
 ```	
 brew install portaudio	
 ```
@@ -33,16 +33,16 @@ pip install -r requirements.txt
 cd client/
 python setup_client.py
 ```
-You email will not be modified and its contents or private metadata will not be accessible to the authors of this work.  
+You email will not be modified and its contents or private metadata will not be accessible to the authors of this work (despite the rather aggressive message :p)
 	
-4. Load your personal music collection into the folder labeled 'tracks/' (use mp3 or wav, others not tested.)
+4. Load your personal music collection into the folder labeled 'server/tracks/' (use mp3 or wav, others not tested.)
 
 ### You need to run these steps every time you'd like to use the system.
 
 5. Tell the system what tracks you'd like to listen to:
 
 ```
-cd server/
+cd ..
 ```
 
 in the 'info.csv' file, enter the metadata of the tracks in the following format:
