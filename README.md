@@ -5,7 +5,7 @@ In this version, a client example is provided that will monitor your gmail inbox
 
 Yes, it is a clunky project using Python for audio processing and only a CLI.  That's why it's a prototype, be gentle!
 
-# DEMO 1
+# STUDY PARTICIPANTS/ DEMO 1
 
 ## How to run this platform (Tested for Ubuntu/ OS X):
 ### You only need to run these steps once.
@@ -33,8 +33,9 @@ pip install -r requirements.txt
 cd client/
 python setup_client.py
 ```
+You email will not be modified and its contents or private metadata will not be accessible to the authors of this work.  
 	
-4. Load your personal music collection into the folder labeled 'tracks/' (mp3 or wav, others not tested.)
+4. Load your personal music collection into the folder labeled 'tracks/' (use mp3 or wav, others not tested.)
 
 ### You need to run these steps every time you'd like to use the system.
 
@@ -76,21 +77,26 @@ OR
 $ python main.py -start
 ```
 	
-if the metadata hasn't changed since the last time.
+if the metadata hasn't changed since the last time. Preprocessing takes a duration of roughly 5-10% of the length of the song.
 	
 7. Start the client with your name (in a separate terminal):
 
 ```
-$ python run_client_NAME.py -id xxx@gmail.com -start -mins 5
+$ python run_client_STUDY.py -id xxx@gmail.com -start -mins 5
 ```
 	
 to run for 5 minutes, OR
 
 ```
-$ python run_client_NAME.py -id xxx@gmail.com -start
+$ python run_client_STUDY.py -id xxx@gmail.com -start
 ```
 	
-to run until your playlist is played through. You can always CTRL+C to terminate early.
+to run until your playlist is played through. You can always CTRL+C to terminate early.  You can also specify additional parameters such as the frequency at which your email is checked or the obviousness level {0,1,2} at which the modification is made:
+
+```
+$ python run_client_STUDY.py -id xxx@gmail.com -start -mins 5 -check_freq 2 -obviousness 0
+```
+8. Answer the question pertaining to the activity you are currently engaged in while using this system, and then you are ready to start.
 
 
 # DEMO 2

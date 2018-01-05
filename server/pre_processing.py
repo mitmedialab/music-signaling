@@ -145,9 +145,6 @@ def feature_extract_blues(blues_track, sr, current_timesig, onset_threshold=0.7)
     rep_samples_audio, num_seg = extract.extract_sample(blues_harm, sr, 1)
     signal_sample = rep_samples_audio[0][0]
 
-    print overlay_sample
-    librosa.output.write_wav("overlay_sample.wav", overlay_sample, sr)
-
    
     return {'overlay': overlay_sample, 'beats': beat_samples, 'alert': signal_sample}
 
@@ -251,7 +248,19 @@ def feature_extract_pop(track_name, sr, num_segments=8, num_clusters=3, seg_thre
 
     jukebox = R.InfiniteJukebox(filename=track_name, async=False)
 
-    return {'jukebox': jukebox}
+    # CHANGES FOR STUDY PHASE 2
+    # EXTRACTED SAMPLE
+    pop_track, _ = librosa.load(track_name)
+    rep_samples_audio, num_seg = extract.extract_sample(pop_track, sr, 1)
+    signal_sample = rep_samples_audio[0][0]
+
+    # NOTE: this is a feature in the infinite jukebox implementation; but it comes across as a modification 
+
+    for i, b in enumerate(jukebox.beats):
+        if b['next'] != b['id'] + 1 and i != len(jukebox.beats) - 1:  # last beat points back to beginning, leave that
+            b['next'] = b['id'] + 1
+
+    return {'jukebox': jukebox, 'alert':signal_sample}
 
 
 if __name__ == "__main__":

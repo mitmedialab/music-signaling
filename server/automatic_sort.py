@@ -81,10 +81,13 @@ class Automatic_Sorting():
                 if has_strong_rhythm:
                         return 'blues'
                 else:
-                    if self.is_repetitive(track_name,sr):  # tighten this up with clustering
-                        return 'pop'
-                    else:
-                        return 'jazz'
+                    # if self.is_repetitive(track_name,sr):  # tighten this up with clustering
+                    #     return 'pop'
+                    # else:
+                    #     return 'jazz'
+
+                    # remove pop as a category for phase 2 of study
+                    return 'jazz'
             else:
                 return 'classical'
         else:

@@ -161,6 +161,7 @@ def start_jukebox_process(param_dict, start, current_timesig):
 
     print "Starting Jukebox thread.."
 
+
     jukebox = param_dict['jukebox']
     beat_multiple = int(current_timesig)
 
@@ -174,6 +175,9 @@ def start_jukebox_process(param_dict, start, current_timesig):
     jkbx_ptr = 0L  
 
     jkbx_ptr = int(curr_beat['start'] * gs.sr)
+
+    # GUT
+    gs.audio_buffer[jkbx_ptr:] = 0
 
     # settings that force a jump
     previous_alert = None
@@ -192,6 +196,7 @@ def start_jukebox_process(param_dict, start, current_timesig):
         if jkbx_ptr + len(beat_buf) > len(gs.audio_buffer):
             # fill balance with silence
             gs.audio_buffer[-1 * (len(gs.audio_buffer) - jkbx_ptr): ] = 0
+            # gs.audio_buffer = np.concatenate((gs.audio_buffer, np.zeros(jkbx_ptr + len(beat_buf) - len(gs.audio_buffer))))
             print "Finished Jukebox thread.."
             return
 
@@ -208,7 +213,33 @@ def start_jukebox_process(param_dict, start, current_timesig):
 
         # jump next or sequential next?
         # in order to jump : (1) the alert must not have been addressed yet, (2) crossed the latency mark (just for consistency), and (3) must have suitable jump candidates
-        if gs.pop_alert != previous_alert and curr_beat['jump_candidates'] != [] and is_jump_beat:
+
+        if gs.pop_alert != previous_alert and gs.pop_subtlety == 2:
+            # CHANGE FOR STUDY PHASE 2:
+            print "JUMPING AT --> JUKEBOX PTR: ", jkbx_ptr
+
+            curr_beat = jukebox.beats[curr_beat['next']]
+
+            alert = param_dict['alert']
+
+            if len(curr_beat['buffer']) < gs.sr:
+                alert_length = int(np.floor(gs.sr / len(curr_beat['buffer']))) * len(curr_beat['buffer'])
+            else:
+                alert_length = len(curr_beat['buffer'])            
+            
+            alert = alert[:alert_length]
+
+
+            beat_buf = alert
+
+            previous_alert = gs.pop_alert
+
+            beats_since_last_jump += 1
+
+            # sleep only for non-jump beats
+            time.sleep(0.35)
+
+        elif gs.pop_alert != previous_alert and curr_beat['jump_candidates'] != [] and is_jump_beat:
             # where is jukebox ptr in relation to buffer pointer?
             print "JUMPING AT --> JUKEBOX PTR: ", jkbx_ptr
 
@@ -229,8 +260,10 @@ def start_jukebox_process(param_dict, start, current_timesig):
             previous_alert = gs.pop_alert
 
             beats_since_last_jump = 0
+        
         else:
             curr_beat = jukebox.beats[curr_beat['next']]
+ 
             beat_buf = curr_beat['buffer']
 
             beats_since_last_jump += 1
