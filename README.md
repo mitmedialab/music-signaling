@@ -79,16 +79,16 @@ $ python main.py -start
 	
 if the metadata hasn't changed since the last time. Preprocessing takes a duration of roughly 5-10% of the length of the song.
 	
-7. Start the client with your name (in a separate terminal):
+7. Start the client (in a separate terminal):
 
 ```
-$ python run_client_STUDY.py -id xxx@gmail.com -start -mins 5
+$ python run_client_STUDY.py -id xxx@gmail.com -mins 5
 ```
 	
 to run for 5 minutes, OR
 
 ```
-$ python run_client_STUDY.py -id xxx@gmail.com -start
+$ python run_client_STUDY.py -id xxx@gmail.com 
 ```
 	
 to run until your playlist is played through. You can always CTRL+C to terminate early.  You can also specify additional parameters such as the frequency at which your email is checked or the obviousness level {0,1,2} at which the modification is made:
