@@ -67,6 +67,7 @@ def stream_audio(track_names, genre_tags, param_dict_list, modify_flag, end_stre
         if not end_stream.is_set() and i != len(track_names)-1:
             # make modifier thread wait while we load new song
             modify_flag.clear()
+            gs.new_song = True
             print "Loading new song.."
             # time.sleep(1) # wait for buffer thread to reset
         else:
@@ -380,7 +381,7 @@ if __name__ == "__main__":
         
         msg_length=5
 
-        new_song = True
+        gs.new_song = True
 
         # terminate monitor thread if stream thread finishes
         while t1.is_alive():
@@ -390,10 +391,11 @@ if __name__ == "__main__":
             except:
                 pass
 
-            # if there is a msg
-            if len(gs.msg_q) > 0:
-                # and we are allowed to modify
-                if modify_flag.is_set():
+           
+            # and we are allowed to modify
+            if modify_flag.is_set():
+                # if there is a msg
+                if len(gs.msg_q) > 0:
                     msg = gs.msg_q.pop()
                     if len(msg) == msg_length:
                         header, level = msg.split(':')
@@ -410,20 +412,20 @@ if __name__ == "__main__":
                                 is_alive = False
 
                             if not is_alive:
-                                mod_thread = threading.Thread(target=modify_buffer, args=(param_dict_list[gs.song_index], genre_tags[gs.song_index],time_sigs[gs.song_index],level,new_song, ))
+                                mod_thread = threading.Thread(target=modify_buffer, args=(param_dict_list[gs.song_index], genre_tags[gs.song_index],time_sigs[gs.song_index],level,gs.new_song, ))
                                 mod_thread.daemon = True
                                 mod_thread.start()
-                                new_song = False
+                                gs.new_song = False
                         else:
                             print "Message Error."
                     else:
                             print "Message Error." 
 
                     
-                # we are not allowed to modify, during song load
-                else:
-                    new_song = True
-                    time.sleep(5)
+            # we are not allowed to modify, during song load
+            else:
+                gs.new_song = True
+                time.sleep(5)
 
         connection.close()
         socket.shutdown(1)

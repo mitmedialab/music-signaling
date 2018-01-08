@@ -21,4 +21,5 @@ def init():
 	global pop_subtlety
 	global msg_q
 	msg_q = deque()
+	global new_song
 	print "Finished initializing."

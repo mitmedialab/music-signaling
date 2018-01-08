@@ -162,7 +162,9 @@ def compute_energy_score(chroma_transpose, onset_lines, silent_segment_number, t
 def extract_sample(sample_harmonic, sample_rate, num_pitches, window_size=15, n_fft=2048, hop_length=512, tfactor=0.6, multi_clip=False):
     # compute chroma and smooth
     C_cqt = librosa.feature.chroma_stft(y=sample_harmonic, sr=sample_rate, n_fft=2048, hop_length=512)
+    
     smooth_ct = temporal_smoothing(C_cqt, window_size)
+
 
     # create LCS mask and fine onset lines
     chroma_transpose = smooth_ct.transpose()
@@ -181,7 +183,8 @@ def extract_sample(sample_harmonic, sample_rate, num_pitches, window_size=15, n_
         old_idx = idx
 
     # needs to be an onset line at the end
-    onset_lines.append(len(chroma_transpose) - 1)
+    if len(chroma_transpose) - 1 not in onset_lines:
+        onset_lines.append(len(chroma_transpose) - 1)
         
     mask = np.array(mask)
 
@@ -242,7 +245,6 @@ def extract_sample(sample_harmonic, sample_rate, num_pitches, window_size=15, n_
         score, seg_idx = s
         onset_frame_left = onset_lines[seg_idx]
         onset_frame_right = onset_lines[seg_idx + 1]
-        print (onset_frame_left, onset_frame_right)
         samp_left = librosa.frames_to_samples(onset_frame_left)[0]
         samp_right = librosa.frames_to_samples(onset_frame_right)[0]
         #rep_sample = dd_harmonic[samp_left:samp_right]

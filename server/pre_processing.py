@@ -92,8 +92,13 @@ def feature_extract_jazz(jazz_track, sr, num_segments=8, seg_thresh=3):
     
     # extracted subsample - using VS pipeline
     jazz_harm, jazz_perc = librosa.effects.hpss(jazz_track)
-    rep_samples_audio, num_seg = extract.extract_sample(jazz_harm, sr, 1)
-    signal_sample = rep_samples_audio[0][0]
+    try:
+        rep_samples_audio, num_seg = extract.extract_sample(jazz_harm, sr, 1)
+        signal_sample = rep_samples_audio[0][0]
+    except:
+        print "Could not extract sample from VS Pipeline, using default.."
+        mdpt = int(len(jazz_harm)/2)
+        signal_sample = jazz_harm[mdpt : mdpt + sr]
     
     # extract beats to overlay VS sample
     onset_env = librosa.onset.onset_strength(jazz_perc, sr=sr,
@@ -142,8 +147,13 @@ def feature_extract_blues(blues_track, sr, current_timesig, onset_threshold=0.7)
     beat_samples = librosa.frames_to_samples(beats, hop_length=hop_length)
     
     # get extracted subsample - using VS pipeline
-    rep_samples_audio, num_seg = extract.extract_sample(blues_harm, sr, 1)
-    signal_sample = rep_samples_audio[0][0]
+    try:
+        rep_samples_audio, num_seg = extract.extract_sample(blues_harm, sr, 1)
+        signal_sample = rep_samples_audio[0][0]
+    except:
+        print "Could not extract sample from VS Pipeline, using default.."
+        mdpt = int(len(blues_harm)/2)
+        signal_sample = blues_harm[mdpt : mdpt + sr]
 
    
     return {'overlay': overlay_sample, 'beats': beat_samples, 'alert': signal_sample}
@@ -232,8 +242,13 @@ def feature_extract_classical(classical_track, sr, low_proc=True, num_segments=1
         
     # EXTRACTED SAMPLE
     classical_harm = librosa.effects.harmonic(classical_track)
-    rep_samples_audio, num_seg = extract.extract_sample(classical_harm, sr, 1)
-    signal_sample = rep_samples_audio[0][0]
+    try:
+        rep_samples_audio, num_seg = extract.extract_sample(classical_harm, sr, 1)
+        signal_sample = rep_samples_audio[0][0]
+    except:
+        print "Could not extract sample from VS Pipeline, using default.."
+        mdpt = int(len(classical_harm)/2)
+        signal_sample = classical_harm[mdpt : mdpt + sr]
     
     return {'bounds':sample_intervals, 'tempo': normalized_tempo_curve, 'echo':echo_ampl_curve, 'delay': delay_curve, 'alert':signal_sample}
 
@@ -251,8 +266,13 @@ def feature_extract_pop(track_name, sr, num_segments=8, num_clusters=3, seg_thre
     # CHANGES FOR STUDY PHASE 2
     # EXTRACTED SAMPLE
     pop_track, _ = librosa.load(track_name)
-    rep_samples_audio, num_seg = extract.extract_sample(pop_track, sr, 1)
-    signal_sample = rep_samples_audio[0][0]
+    try:
+        rep_samples_audio, num_seg = extract.extract_sample(pop_track, sr, 1)
+        signal_sample = rep_samples_audio[0][0]
+    except:
+        print "Could not extract sample from VS Pipeline, using default.."
+        mdpt = int(len(pop_track)/2)
+        signal_sample = pop_track[mdpt : mdpt + sr]
 
     # NOTE: this is a feature in the infinite jukebox implementation; but it comes across as a modification 
 
