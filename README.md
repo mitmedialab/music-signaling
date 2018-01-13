@@ -97,16 +97,16 @@ $ python run_client_STUDY.py -id xxx@gmail.com
 You can always CTRL+C on the client terminal to terminate early.  You can also specify additional parameters such as the frequency (in minutes) at which your email is checked or the obviousness level {0,1,2} at which the modification is made:
 
 ```
-$ python run_client_STUDY.py -id xxx@gmail.com -start -mins 5 -check_freq 2 -obviousness 0
+$ python run_client_STUDY.py -id xxx@gmail.com -mins 5 -check_freq 2 -obviousness 0
 ```
 10. Answer the question pertaining to the activity you are currently engaged in while using this system, and then you are ready to start.  Simply leave the application running in the terminal, and go back to doing whatever you were doing!
 
 
 # STUDY PARTICIPANTS: TIPS AND TRICKS
 
-1. Preprocessing is a bit slow.  Considering throwing several tracks into the system at a time while you get a cup of coffee, and you can shuffle them around or use subsets of them to make playlists throughout the day.
+1. Preprocessing is a bit slow.  Considering throwing several tracks into the system at a time before you go to bed or while you get a cup of coffee in the morning, and you can shuffle them around or use subsets of them to make playlists throughout the day.
 2. Do not panic if some of your songs do not play to the end -- every song is designed to play for at most its original duration with different forms of modifications included.
-3. Tune the client parameters to your liking.  You may wish to start with the default parameters, but if you notice after a day that you aren't perceiving the notifications as often, or would like to be notified more frequency, change the '-check_freq' and '-obviousness' values as described above.
+3. Tune the client parameters to your liking.  You may wish to start with the default parameters, but if you notice after a day that you aren't perceiving the notifications as often, or would like to be notified more frequently, change the '-check_freq' and '-obviousness' values as described above.
 4. To find out at what point in time modifications have been made or when an email was detected, you can view the terminal output history.  This is ONLY meant to be a debugging/ dummy-check mechanism -- we encourage you NOT to do this when using the system! Try to use your ears.. and if this does not work well for you, we would love to learn why!
 
 
