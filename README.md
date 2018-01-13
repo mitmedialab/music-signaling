@@ -3,11 +3,11 @@ This a demo version of the SoundSignaling platform.  This project is designed to
 
 In this version, a client example is provided that will monitor your gmail inbox -- when a new email comes in, tracks you have uploaded and that you are listening to will be modified in a stylistically relevant way to let you know.  Follow the steps below to get started.
 
-Yes, it is a clunky project using Python for audio processing and only a CLI.  That's why it's a prototype, be gentle!
+[Yes, it is a clunky project doing a hefty amount of audio processing with only a CLI.  That's why it's a prototype, be gentle!]
 
-# STUDY PARTICIPANTS/ DEMO 1
+# STUDY PARTICIPANTS: INSTALLATION AND EMAIL CLIENT SETUP
 
-## How to run this platform (Tested for Ubuntu/ OS X):
+## How to run this platform (Ubuntu/ OS X support only):
 ### You only need to run these steps once.
 1. Clone this repository to your local machine.
 2. You will need portaudio if you don't have it already:
@@ -24,34 +24,37 @@ sudo apt-get install portaudio19-dev
 
 ```
 cd music-signaling/
-pip install -r requirements.txt
+sudo pip install -r requirements.txt
 ```
 	
-3. Grant this application permission to access your email by running these commands and following the instructions: 
+4. Grant this application permission to access your email by running the following commands.  It will prompt you to visit a url, where you can provide consent to participate and enter your credentials.  This will result in an access string that you can paste back into the terminal. PLEASE NOTE: Your email will not be modified and its contents or private metadata will not be accessible to the authors of this work (despite the rather aggressive message :p)
 
 ```
 cd client/
 python setup_client.py
 ```
-You email will not be modified and its contents or private metadata will not be accessible to the authors of this work (despite the rather aggressive message :p)
 	
-4. Load your personal music collection into the folder labeled 'server/tracks/' (use mp3 or wav, others not tested.)
+5. Load your personal music collection into the system by simply copying tracks (mp3 or wav will work, others not tested) into the 'tracks/' folder. You can access it by typing:
+
+```
+cd ../server/tracks
+```
 
 ### You need to run these steps every time you'd like to use the system.
 
-5. Tell the system what tracks you'd like to listen to:
+7. To tell the system what tracks you'd like to listen to, type:
 
 ```
 cd ..
 ```
 
-in the 'info.csv' file, enter the metadata of the tracks in the following format:
+In the 'info.csv' file, enter the metadata of the tracks in the following format, which corresponds to the filename, genre, and the meter. 
 
 ```
 example1.mp3,classical,4
 example2.mp3,pop,3
 ```
-which is the filename, genre, and time signature. You can use any of the following genre key words:
+You can use any of the following genre key words:
 
 ```
 'classical','rhythmless-instrumental', 'choir', 'avant-garde', 'soundtrack', 'pop', 'country', 'folk', 'latin', 'gospel', 
@@ -65,43 +68,51 @@ example2.mp3,pop,
 example3.mp3,,3
 ```
 
-6. Start the server: 
+8. Start the server with audio preprocessing, if the metadata in the 'info.csv' file has changed (including the order of the files) since the last time: 
 
 ```
 $ python main.py -preprocess -start
 ```
 	
-OR
+If the metadata has not changed, you can use:
 
 ```
 $ python main.py -start
 ```
 	
-if the metadata hasn't changed since the last time. Preprocessing takes a duration of roughly 5-10% of the length of the song.
+When in doubt, always run with the '-preprocessing' flag. Preprocessing takes a duration of roughly 5-10% of the length of the song, though the duration may vary based on your compute power.  Pre-computed data for a given music file is also cached to help speed up the process.
 	
-7. Start the client (in a separate terminal):
+9. Start the client in a separate terminal, replacing the 'xxx' with your GMail ID.  To run the client for 5 mins, for example, type:
 
 ```
 $ python run_client_STUDY.py -id xxx@gmail.com -mins 5
 ```
 	
-to run for 5 minutes, OR
+To run until your playlist is played through, type:
 
 ```
 $ python run_client_STUDY.py -id xxx@gmail.com 
 ```
 	
-to run until your playlist is played through. You can always CTRL+C to terminate early.  You can also specify additional parameters such as the frequency at which your email is checked or the obviousness level {0,1,2} at which the modification is made:
+You can always CTRL+C on the client terminal to terminate early.  You can also specify additional parameters such as the frequency (in minutes) at which your email is checked or the obviousness level {0,1,2} at which the modification is made:
 
 ```
 $ python run_client_STUDY.py -id xxx@gmail.com -start -mins 5 -check_freq 2 -obviousness 0
 ```
-8. Answer the question pertaining to the activity you are currently engaged in while using this system, and then you are ready to start.
+10. Answer the question pertaining to the activity you are currently engaged in while using this system, and then you are ready to start.  Simply leave the application running in the terminal, and go back to doing whatever you were doing!
 
 
-# DEMO 2
+# STUDY PARTICIPANTS: TIPS AND TRICKS
 
-Alternatively, instead of running step 7, you can do a realtime demo. When the server displays 'Please begin client application', do the following:
+1. Preprocessing is a bit slow.  Considering throwing several tracks into the system at a time while you get a cup of coffee, and you can shuffle them around or use subsets of them to make playlists throughout the day.
+2. Do not panic if some of your songs do not play to the end -- every song is designed to play for at most its original duration with different forms of modifications included.
+3. Tune the client parameters to your liking.  You may wish to start with the default parameters, but if you notice after a day that you aren't perceiving the notifications as often, or would like to be notified more frequency, change the '-check_freq' and '-obviousness' values as described above.
+4. To find out at what point in time modifications have been made or when an email was detected, you can view the terminal output history.  This is ONLY meant to be a debugging/ dummy-check mechanism -- we encourage you NOT to do this when using the system! Try to use your ears.. and if this does not work well for you, we would love to learn why!
+
+
+# STUDY PARTICIPANTS: QUICK CHECK/ TROUBLESHOOTING
+
+Alternatively, instead of running step 9, you can do a realtime demo to check that the system is installed correctly. When the server displays 'Please begin the client application', do the following in a separate terminal:
 
 ```
 $ cd client/
@@ -109,7 +120,7 @@ $ python
 >>> import client
 >>> c = client.Client()
 ```
-after the tracks begin to play, feel free to try different signaling levels, at least a few seconds apart so people can listen to the modifications:
+after the tracks begin to play, feel free to try different signaling levels, at least a few seconds apart so you can listen to the modifications:
 
 ```
 >>> c.signal(0)
@@ -122,31 +133,6 @@ when finished:
 >>> c.end_client()
 >>> exit()
 ```
-
-
-
-
-
-# Development TODOs
-
-## Minor Algorithmic Improvements
-1. Bit of popping on tail end of level 1 classical music (time stretching)
-2. Make sure we pick up rhythmic element instead of harmonic in blues overlay
-3. More careful jump rules on jumping for pop
-4. Classical needs fine tuning -- echo and stretch offset parameters
-5. Blues -- overlays need volume control
-6. Implement time signature detector in Automatic_Sorting using AES paper
-7. Jazz key detection for shifting
-8. Maintain jukebox ptr rate algorithmically based on number of jump vs/ non-jump beats
-9. Phase vocoder for classical is kind of crap, better implementation?
-
-## Minor Technical Improvements
-1. Final UI for system use (text file / folder)
-2. Switch back to Stereo
-3. Pause music option, without restarting play sequence
-
-## Bugs:
-3. If modification sent when pop thread is done, it should be stored in queue, not dropped
 
 
 

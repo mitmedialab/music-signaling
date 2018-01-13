@@ -33,27 +33,23 @@ import Remixatron as R
 # TEST
 import time
 
-def preprocess(track_names, genre_tags, time_sigs):
-    param_dict_list = []
+def preprocess(track_name, genre_tag, time_sig):
+    track, sr = librosa.load(track_name)
+    track, _ = librosa.effects.trim(track)
+    if genre_tag == 'jazz':
+        param_dict = feature_extract_jazz(track, sr)
+    elif genre_tag == 'blues':
+        param_dict = feature_extract_blues(track, sr, time_sig)
+    elif genre_tag == 'classical':
+        param_dict = feature_extract_classical(track, sr)
+    elif genre_tag == 'pop':
+        param_dict = feature_extract_pop(track_name, sr)
+    else:
+        # implement classification for misc
+        print "Error: Genre Keyword"
+        raise NotImplementedError
 
-    for i, track_name in enumerate(track_names):
-        track, sr = librosa.load(track_name)
-        track, _ = librosa.effects.trim(track)
-        if genre_tags[i] == 'jazz':
-            param_dict = feature_extract_jazz(track, sr)
-        elif genre_tags[i] == 'blues':
-            param_dict = feature_extract_blues(track, sr, time_sigs[i])
-        elif genre_tags[i] == 'classical':
-            param_dict = feature_extract_classical(track, sr)
-        elif genre_tags[i] == 'pop':
-            param_dict = feature_extract_pop(track_name, sr)
-        else:
-            # implement classification for misc
-            raise NotImplementedError
-
-        param_dict_list.append(param_dict)
-
-    return param_dict_list
+    return param_dict
 
 
 ###################################
@@ -276,9 +272,13 @@ def feature_extract_pop(track_name, sr, num_segments=8, num_clusters=3, seg_thre
 
     # NOTE: this is a feature in the infinite jukebox implementation; but it comes across as a modification 
 
-    for i, b in enumerate(jukebox.beats):
-        if b['next'] != b['id'] + 1 and i != len(jukebox.beats) - 1:  # last beat points back to beginning, leave that
-            b['next'] = b['id'] + 1
+    for i in range(len(jukebox.beats)):
+        if i == len(jukebox.beats) - 1:
+            jukebox.beats[i]['next'] = None
+        elif jukebox.beats[i]['next'] != jukebox.beats[i]['id'] + 1:
+            jukebox.beats[i]['next'] = jukebox.beats[i]['id'] + 1
+        else:
+            pass
 
     return {'jukebox': jukebox, 'alert':signal_sample}
 

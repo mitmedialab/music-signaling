@@ -137,9 +137,9 @@ if __name__ == "__main__":
     if args.id != None:
 
         # start all connections by default
-        cog_load = raw_input(">>Let's get started! Can you tell me what you're working on right now?\n>>")
+        cog_load = raw_input(">>Let's get started! Can you tell me what you will be doing as you listen?\n>>")
         e = Client_Email(args.id, cog_load, args.obv)
-        print "Great! I will check your email once every " + str(args.check) + "minutes and let you know by modifying your music at a level " + str(args.obv) + \
+        print "Great! I will check your email once every " + str(args.check) + " minutes and let you know by modifying your music at a level " + str(args.obv) + \
         ".  Remember, you can feel free to change these parameters and restart your playlist at any time. Enjoy!"
         e.start_server_connection()
         e.start_gmail_connection()

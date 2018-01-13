@@ -175,13 +175,13 @@ def start_jukebox_process(param_dict, start, current_timesig):
     beat_buf = curr_beat['buffer']
     jkbx_ptr = 0L  
 
-    jkbx_ptr = int(curr_beat['start'] * gs.sr)
+    jkbx_ptr = long(curr_beat['start'] * gs.sr)
 
     # GUT
     gs.audio_buffer[jkbx_ptr:] = 0
 
     # settings that force a jump
-    previous_alert = None
+    # previous_alert = None
 
     # min beats before we have to jump, 10% of beats in the song
     max_beats_between_jumps = int(round(len(jukebox.beats) * .1))
@@ -191,6 +191,8 @@ def start_jukebox_process(param_dict, start, current_timesig):
     recent_seg_depth = int(round(jukebox.segments * .25))
     recent_seg_depth = max( recent_seg_depth, 1 )
     recent_segments = collections.deque(maxlen=recent_seg_depth)
+
+    sleep_time = 0.35
 
     while jkbx_ptr < len(gs.audio_buffer):
         # insert current beat
@@ -215,7 +217,8 @@ def start_jukebox_process(param_dict, start, current_timesig):
         # jump next or sequential next?
         # in order to jump : (1) the alert must not have been addressed yet, (2) crossed the latency mark (just for consistency), and (3) must have suitable jump candidates
 
-        if gs.pop_alert != previous_alert and gs.pop_subtlety == 2:
+        # if gs.pop_alert != previous_alert and gs.pop_subtlety == 2:
+        if gs.pop_subtlety == 2:
             # CHANGE FOR STUDY PHASE 2:
             print "JUMPING AT --> JUKEBOX PTR: ", jkbx_ptr
 
@@ -233,14 +236,14 @@ def start_jukebox_process(param_dict, start, current_timesig):
 
             beat_buf = alert
 
-            previous_alert = gs.pop_alert
+            # previous_alert = gs.pop_alert
+            gs.pop_subtlety = -1
 
             beats_since_last_jump += 1
 
-            # sleep only for non-jump beats
-            time.sleep(0.35)
 
-        elif gs.pop_alert != previous_alert and curr_beat['jump_candidates'] != [] and is_jump_beat:
+        # elif gs.pop_alert != previous_alert and curr_beat['jump_candidates'] != [] and is_jump_beat:
+        elif ( gs.pop_subtlety == 1 or gs.pop_subtlety == 0 ) and curr_beat['jump_candidates'] != [] and is_jump_beat:
             # where is jukebox ptr in relation to buffer pointer?
             print "JUMPING AT --> JUKEBOX PTR: ", jkbx_ptr
 
@@ -258,19 +261,34 @@ def start_jukebox_process(param_dict, start, current_timesig):
             beat_buf = beat_window(curr_beat['buffer'])
             # taper_buffer_edges(jkbx_ptr, jkbx_ptr + len(beat_buf), 0.25)
 
-            previous_alert = gs.pop_alert
+            # previous_alert = gs.pop_alert
+            gs.pop_subtlety = -1
 
             beats_since_last_jump = 0
         
         else:
-            curr_beat = jukebox.beats[curr_beat['next']]
- 
-            beat_buf = curr_beat['buffer']
+            if curr_beat['next'] == None:
+                print "Jukebox thread reached end of track."
+                gs.audio_buffer = gs.audio_buffer[:jkbx_ptr]
+                break
+            else:
+                curr_beat = jukebox.beats[curr_beat['next']]
+     
+                beat_buf = curr_beat['buffer']
 
-            beats_since_last_jump += 1
+                beats_since_last_jump += 1
 
-            # sleep only for non-jump beats
-            time.sleep(0.35)
+                # sleep only for non-jump 
+                # print "jkbx ptr currently at: ", jkbx_ptr
+                # print "current sleep time: ", sleep_time
+
+                if jkbx_ptr - gs.ptr <= 500000:
+                    sleep_time = max(sleep_time / 10.0, 0.001)
+                elif jkbx_ptr - gs.ptr >= 1000000:
+                    sleep_time = min(sleep_time * 8.0, 1.0)
+                else:
+                    pass
+                time.sleep(sleep_time)
 
         if curr_beat['segment'] not in recent_segments:
             recent_segments.append(curr_beat['segment'])
@@ -304,9 +322,14 @@ def preprocess(source_file_path='tracks/', list_file='info.csv'):
     reader = csv.reader(ifile)
 
     for row in reader:
-        track_names.append(source_file_path + row[0])
-        genre_tags.append(row[1])
-        time_sigs.append(row[2])
+        try:
+            if row != "" or " ":
+                track_names.append(source_file_path + row[0])
+                genre_tags.append(row[1])
+                time_sigs.append(row[2])
+        except:
+            print "Error: info.csv is formatted incorrectly. Please try again."
+            sys.exit(0)
 
     print "Metadata Read In: "
     print "----------------------"
@@ -315,15 +338,30 @@ def preprocess(source_file_path='tracks/', list_file='info.csv'):
     print time_sigs
     print "----------------------"
 
-    print "Pre-processing.."
+    param_dict_list = []
     # check for missing genre tags and time sigs
     a = AS.Automatic_Sorting()
-    for i in range(len(track_names)):
+    for i, track_name in enumerate(track_names):
+        print "Pre-processing track: ", i
+        # check or compute genre/ time sig data
         genre_tags[i] = a.categorize_audio(track_names[i], genre_tags[i])
+        time_sigs[i] = a.estimate_timesig(track_names[i], time_sigs[i])
 
-    for i, ts in enumerate(time_sigs):
-        if ts == "":
-            time_sigs[i] = a.estimate_timesig(track_names[i])
+        preprocess_name = track_name.replace('tracks/','') + "_" + str(genre_tags[i]) + "_" + str(time_sigs[i]) + ".pkl"
+
+        # check if pre-computed data already exists
+        if preprocess_name in os.listdir("preprocess_data/"):
+            # load the data
+            print "Found existing data, loading."
+            param_dict = pickle.load(open("preprocess_data/" + preprocess_name, 'rb'))
+        # pre-process the track alone
+        else:
+            param_dict = pre.preprocess(track_names[i], genre_tags[i], time_sigs[i]) 
+            # save for later use
+            pickle.dump(param_dict, open("preprocess_data/" + preprocess_name, 'wb'))
+
+        param_dict_list.append(param_dict)
+        
 
     print "Final Estimated Metadata: "
     print "----------------------"
@@ -332,10 +370,8 @@ def preprocess(source_file_path='tracks/', list_file='info.csv'):
     print time_sigs
     print "----------------------"
 
-    param_dict_list = pre.preprocess(track_names, genre_tags, time_sigs)
-    np.array(param_dict_list).dump("prep.dat")
-
     pickle.dump((track_names, genre_tags, time_sigs), open('meta.pkl', 'wb'))
+    np.array(param_dict_list).dump('prep.dat')
     print "Finished Pre-processing."
 
 
@@ -425,7 +461,7 @@ if __name__ == "__main__":
             # we are not allowed to modify, during song load
             else:
                 gs.new_song = True
-                time.sleep(5)
+                time.sleep(3)
 
         connection.close()
         socket.shutdown(1)

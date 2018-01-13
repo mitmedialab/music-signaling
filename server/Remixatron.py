@@ -367,7 +367,10 @@ class InfiniteJukebox(object):
         fade = next(info.index(b) for b in reversed(info) if b['amplitude'] >= (.75 * max_amplitude))
 
         # truncate the beats to [start:fade + 1]
-        beats = info[self.__start_beat:fade + 1]
+        # beats = info[self.__start_beat:fade + 1]
+
+        # Sound Signaling Edit: we don't want to truncate the song
+        beats = info[self.__start_beat:]
 
         loop_bounds_begin = self.__start_beat
 

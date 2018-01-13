@@ -193,7 +193,7 @@ def modify_classical(level, param_dict, start, dur=4, sig_dur=4, segment=False):
 def modify_pop(level, param_dict, start, dur=2):
 	# write the new start value to the pop song alert flag
 	# jukebox thread should change the next beat
-	gs.pop_alert = start
+	# gs.pop_alert = start
 	gs.pop_subtlety = level
 
 	return True

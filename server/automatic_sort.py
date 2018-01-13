@@ -81,22 +81,31 @@ class Automatic_Sorting():
                 if has_strong_rhythm:
                         return 'blues'
                 else:
-                    # if self.is_repetitive(track_name,sr):  # tighten this up with clustering
-                    #     return 'pop'
-                    # else:
-                    #     return 'jazz'
+                    if self.is_repetitive(track_name,sr):  # tighten this up with clustering
+                        return 'pop'
+                    else:
+                        return 'jazz'
 
                     # remove pop as a category for phase 2 of study
-                    return 'jazz'
+                    # return 'jazz'
             else:
                 return 'classical'
         else:
             return cat
 
+    def is_int(self, time_sig):
+        try:
+            int(time_sig)
+            return True
+        except ValueError:
+            return False
 
-    def estimate_timesig(self, track_name):
+    def estimate_timesig(self, track_name, time_sig):
         # TODO - Implementation
-        return '4'
+        if time_sig == "" or not self.is_int(time_sig):
+            return '4'
+        else:
+            return time_sig
 
 
 if __name__ == '__main__':
