@@ -34,7 +34,7 @@ cd client/
 python setup_client.py
 ```
 	
-5. Load your personal music collection into the system by simply copying tracks (mp3 or wav will work, others not tested) into the 'tracks/' folder. You can access it by typing:
+5. Load your personal music collection into the system by simply copying tracks (standard file formats such as mp3, wav, ogg should work) into the 'tracks/' folder. You can access it by typing:
 
 ```
 cd ../server/tracks
