@@ -466,8 +466,8 @@ if __name__ == "__main__":
             connection.close()
             socket.shutdown(1)
             socket.close()
-        except socket.error:
-            print "Force closing socket."
+        except:
+            print "Closing socket."
 
         
 

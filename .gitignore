@@ -105,4 +105,3 @@ ENV/
 *.wav
 *.mp3
 *.pkl
-!fmp.pyc

@@ -6,7 +6,6 @@
 import librosa
 import math 
 import numpy as np
-import fmp
 
 ################################
 # UTILITIES
@@ -32,6 +31,48 @@ def num_segments_used(p, clip_length):
         return 1
     else:
         return math.floor(clip_length / p) + 1
+
+# speed up exponential decay computation by hard-coding
+# alpha = 0.7
+def get_chord_template():
+    T = np.array([[ 0.94843371,  0.        ,  0.        ,  0.        ,  0.10714399,
+         0.        ,  0.        ,  0.29366199,  0.        ,  0.        ,
+         0.05250055,  0.        ],
+       [ 0.        ,  0.94843371,  0.        ,  0.        ,  0.        ,
+         0.10714399,  0.        ,  0.        ,  0.29366199,  0.        ,
+         0.        ,  0.05250055],
+       [ 0.05250055,  0.        ,  0.94843371,  0.        ,  0.        ,
+         0.        ,  0.10714399,  0.        ,  0.        ,  0.29366199,
+         0.        ,  0.        ],
+       [ 0.        ,  0.05250055,  0.        ,  0.94843371,  0.        ,
+         0.        ,  0.        ,  0.10714399,  0.        ,  0.        ,
+         0.29366199,  0.        ],
+       [ 0.        ,  0.        ,  0.05250055,  0.        ,  0.94843371,
+         0.        ,  0.        ,  0.        ,  0.10714399,  0.        ,
+         0.        ,  0.29366199],
+       [ 0.29366199,  0.        ,  0.        ,  0.05250055,  0.        ,
+         0.94843371,  0.        ,  0.        ,  0.        ,  0.10714399,
+         0.        ,  0.        ],
+       [ 0.        ,  0.29366199,  0.        ,  0.        ,  0.05250055,
+         0.        ,  0.94843371,  0.        ,  0.        ,  0.        ,
+         0.10714399,  0.        ],
+       [ 0.        ,  0.        ,  0.29366199,  0.        ,  0.        ,
+         0.05250055,  0.        ,  0.94843371,  0.        ,  0.        ,
+         0.        ,  0.10714399],
+       [ 0.10714399,  0.        ,  0.        ,  0.29366199,  0.        ,
+         0.        ,  0.05250055,  0.        ,  0.94843371,  0.        ,
+         0.        ,  0.        ],
+       [ 0.        ,  0.10714399,  0.        ,  0.        ,  0.29366199,
+         0.        ,  0.        ,  0.05250055,  0.        ,  0.94843371,
+         0.        ,  0.        ],
+       [ 0.        ,  0.        ,  0.10714399,  0.        ,  0.        ,
+         0.29366199,  0.        ,  0.        ,  0.05250055,  0.        ,
+         0.94843371,  0.        ],
+       [ 0.        ,  0.        ,  0.        ,  0.10714399,  0.        ,
+         0.        ,  0.29366199,  0.        ,  0.        ,  0.05250055,
+         0.        ,  0.94843371]])
+
+    return T
 
 ################################
 # SCORING FUNCTIONS
@@ -131,10 +172,11 @@ def compute_energy_score(chroma_transpose, onset_lines, silent_segment_number, t
         unit_chroma.append(new_col)
 
     # generate template with N overtones for each fundamental frequency: T
-    alpha = 0.7
-    T = np.zeros((12,12))
-    for i in range(12):
-        T[i] = fmp.make_chord_template([i], alpha)
+    # alpha = 0.7
+    # T = np.zeros((12,12))
+    # for i in range(12):
+    #     T[i] = fmp.make_chord_template([i], alpha)
+    T = get_chord_template()
 
     # dot the template with LCS Segment
     monophony_dp = []
