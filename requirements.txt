@@ -4,7 +4,6 @@ pydub==0.16.6
 librosa==0.5.0
 pytz==2014.10
 pygame==1.9.2
-matplotlib==1.5.1
 pyaudio==0.2.11
 scikit_learn==0.19.1
 requests==2.11.1
