@@ -20,7 +20,7 @@ or
 sudo apt-get install portaudio19-dev
 ```
     
-3. Install dependencies by running: 
+3. Install python dependencies by running the following.  (You may wish to work in a VirtualEnvironment -- you should be able to follow the same instructions once in your virtualenv.) 
 
 ```
 cd music-signaling/
