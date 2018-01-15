@@ -8,18 +8,10 @@
 ######################################
 
 import numpy as np
-# matplotlib for displaying the output
-# import matplotlib.pyplot as plt
-# import matplotlib.style as ms
-
-# and IPython.display for audio output
-# import IPython.display
-# from IPython.display import Audio
 
 # Librosa for audio
 import librosa
-# And the display module for visualization
-import librosa.display
+
 from scipy import signal
 import sklearn.cluster
 
