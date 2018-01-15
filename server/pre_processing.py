@@ -9,8 +9,8 @@
 
 import numpy as np
 # matplotlib for displaying the output
-import matplotlib.pyplot as plt
-import matplotlib.style as ms
+# import matplotlib.pyplot as plt
+# import matplotlib.style as ms
 
 # and IPython.display for audio output
 # import IPython.display
