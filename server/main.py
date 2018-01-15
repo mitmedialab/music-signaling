@@ -462,10 +462,12 @@ if __name__ == "__main__":
             else:
                 gs.new_song = True
                 time.sleep(3)
-
-        connection.close()
-        socket.shutdown(1)
-        socket.close()
+        try:
+            connection.close()
+            socket.shutdown(1)
+            socket.close()
+        except socket.error:
+            print "Force closing socket."
 
         
 
