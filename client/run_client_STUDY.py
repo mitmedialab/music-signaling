@@ -65,7 +65,8 @@ class Client_Email:
 
     # check for new messages once every 5 minutes, and signal if present
     def check_and_signal(self, finished_flag, wait_mins):
-        today = datetime.now(pytz.utc)
+        # today = datetime.now(pytz.utc)
+        today = datetime.now(pytz.utc) - timedelta(days=1)
         datestr = str(today.day) + '-' + today.strftime('%b') + '-' + str(today.year)
         
         # load the day's email into list
