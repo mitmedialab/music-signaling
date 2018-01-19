@@ -115,7 +115,7 @@ def feature_extract_blues(blues_track, sr, current_timesig, onset_threshold=0.7)
     
     prev_val = 0
 
-    for i, b in enumerate(beats[:-1]):
+    for i, b in enumerate(beats[:-3]):
         # get the corresponding onset env value
         t_b = times[b]
         on_f_b = librosa.time_to_frames([t_b], sr=sr, hop_length=hop_length)
