@@ -25,6 +25,8 @@ import Remixatron as R
 # TEST
 import time
 
+import sys
+
 def preprocess(track_name, genre_tag, time_sig):
     track, sr = librosa.load(track_name)
     track, _ = librosa.effects.trim(track)
@@ -248,8 +250,11 @@ def feature_extract_classical(classical_track, sr, low_proc=True, num_segments=1
 def feature_extract_pop(track_name, sr, num_segments=8, num_clusters=3, seg_thresh=3):
 
     # return the jukebox object computed by the remixatron
-
-    jukebox = R.InfiniteJukebox(filename=track_name, async=False)
+    try:
+        jukebox = R.InfiniteJukebox(filename=track_name, async=False)
+    except R.PopFormatError:
+        print "Warning (Pop Estimation): This track could not be segmented properly due to formatting issues.  Please either allow for automatic genre determination, or discard this track from your playlist."
+        sys.exit(0)
 
     # CHANGES FOR STUDY PHASE 2
     # EXTRACTED SAMPLE

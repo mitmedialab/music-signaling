@@ -42,6 +42,9 @@ import threading
 import numpy as np
 import sklearn.cluster
 
+class PopFormatError(Exception):
+    pass
+
 class InfiniteJukebox(object):
 
     """ Class to "infinitely" remix a song.
@@ -384,6 +387,7 @@ class InfiniteJukebox(object):
         # compute a coherent 'next' beat to play. This is always just the next ordinal beat
         # unless we're at the end of the song. Then it gets a little trickier.
 
+        empty_jump_beats = 0
         for beat in beats:
             if beat == beats[-1]:
 
@@ -416,6 +420,11 @@ class InfiniteJukebox(object):
                 beat['jump_candidates'] = jump_candidates
             else:
                 beat['jump_candidates'] = []
+                empty_jump_beats += 1
+
+        # if no beats have jump candidates, let's warn the user to throw out this track
+        if empty_jump_beats == len(beats):
+            raise PopFormatError 
 
         # safe off the segment count
         self.segments = max([b['segment'] for b in beats]) + 1

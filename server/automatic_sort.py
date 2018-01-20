@@ -57,7 +57,11 @@ class Automatic_Sorting():
 
     def is_repetitive(self, track_name, sr, tau=0.3):
 
-        jukebox = R.InfiniteJukebox(filename=track_name, async=False)
+        try:
+            jukebox = R.InfiniteJukebox(filename=track_name, async=False)
+        except R.PopFormatError:
+            print "Warning (Pop Estimation): This track could not be segmented properly due to formatting issues.  Genre will be recategorized."
+            return False
 
         count = 0
         for i, b in enumerate(jukebox.beats):
